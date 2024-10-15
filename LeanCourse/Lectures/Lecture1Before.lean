@@ -62,16 +62,24 @@ example (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)
     (u_lim : SequenceHasLimit u x₀)
     (f_cont : ContinuousAtPoint f x₀) :
     SequenceHasLimit (f ∘ u) (f x₀) := by {
-  sorry
+
   -- Let ε > 0 be arbitrary
+  intro (ε : ℝ ) (hε > 0)
   -- Since `f` is continuous, we can pick a `δ > 0` such that
   -- for all `x`, `|x - x₀| < δ → |f(x) - f(x₀)| < ε`.
+  obtain ⟨δ, hδ, f_prop⟩ := f_cont ε
   -- Since `u` converges to `x₀`, we can pick a `N` such that
   -- for all `n ≥ N`, `|u_n - x₀| < δ`.
+  obtain ⟨N, u_prop⟩ := u_lim δ hδ
   -- We pick this `N` to show that `f ∘ u` has limit `f(x₀)`.
+  use N
   -- If `n ≥ N` we have `|u_n - x₀| < δ`,
+  intro n hn
+  specialize u_prop n hn
   -- hence `|f(u_n) - f(x₀)| < ε`.
+  specialize f_prop (u n) u_prop
   -- This finishes the proof.
+  assumption
   }
 
 
@@ -147,7 +155,7 @@ You can omit the parentheses in case `x` is a variable: `f x`
 
 #eval fib (5) + 5
 #eval fib (5 + 5)
--- #eval fib 5 + 5
+#eval fib 5 + 5
 
 
 
@@ -172,7 +180,6 @@ Note the colon that means "has type" or "having type"
 -- We can also define a function without giving it a name using `fun`.
 #check fun x : ℝ ↦ x ^ 3
 #check fun n : ℤ ↦ n ^ 3
-
 
 #check 2
 
@@ -254,15 +261,17 @@ def differentiable (f : ℝ → ℝ) : Prop :=
 /- If we have a statement `A : Prop`, we can prove `A` using *tactics*. -/
 
 /- `rfl` proves equalities that are equal by definition. -/
-example : 2 + 2 = 4 := by sorry
+example : 2 + 2 = 4 := by rfl
+
+-- example : 2 + 2 = 5 := by rfl
 
 /- `ring` proves equalities that follow from the axioms of a ring. -/
 example (a b c : ℝ) : (a * b) * c = b * (a * c) := by {
-  ring
+  show_term ring
   }
 
 /- `rw` replaces the left-hand side of `h` with its right-hand side in the goal. -/
 example (a b c d : ℝ) (h : a + b = c - d) : 2 * (a + b) = 2 * c - 2 * d := by {
   rw [h]
-  ring
+  show_term ring
   }
