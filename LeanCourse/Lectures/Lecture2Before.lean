@@ -41,7 +41,6 @@ the argument must lie in the domain of the function.  -/
 /- Statements have type `Prop` and predicates on `A` have type `A → Prop`. -/
 #check 3 < π
 #check (Nat.Prime)
-#check Type
 
 
 /- To prove a statement, you use *tactics* to construct a proof of that statement.
@@ -71,19 +70,12 @@ We can do this with the `have` tactic.
 -/
 
 example (p q r : Prop) (hq : p → q) (hr : p → q → r) : p → r := by {
-  intro (hp : p)
-  have h : q := hq hp
-  have h2 := hr hp
-  have h3 := h2 h
-  exact h3
+  sorry
   }
 
 /- We can also use `specialize` to apply a hypothesis to arguments. -/
 example (p q r : Prop) (hq : p → q) (hr : p → q → r) : p → r := by {
-  intro hp
-  specialize hq hp
-  specialize hr hp hq
-  assumption
+  sorry
   }
 
 /-
@@ -94,13 +86,7 @@ We do this with the `apply` tactic.
 -/
 
 example (p q r s : Prop) (hq : p → s → q) (hr : q → r) : s → p → r := by {
-  show_term
-  intro hs hp
-  apply hr
-  apply hq
-  · assumption
-  · assumption
-
+  sorry
   }
 
 /- We can also use `exact` or `refine` with more complicated proof terms. -/
@@ -115,7 +101,6 @@ example (p q r : Prop) (hq : p → p → q) (hr : q → r) : p → r := by {
   `apply` has to match the outermost thing you are trying to prove.
 - *generally* you use `rw` with an equality,
   and `apply` with implications and "for all" statements.
-  apply can mess up proof (make you prove something wrong)
 -/
 
 
@@ -124,11 +109,7 @@ variable (f g : ℝ → ℝ)
 #check (Continuous.add : Continuous f → Continuous g → Continuous (fun x ↦ f x + g x))
 
 example : Continuous (fun x ↦ 2 + x * Real.sin x) := by {
-  apply Continuous.add
-  · exact continuous_const
-  apply Continuous.mul
-  · exact continuous_id
-  · exact continuous_sin
+  sorry
   }
 
 
@@ -170,10 +151,8 @@ to the file where the theorem is proven.
 You can often find similar theorems nearby the theorem you searched for.
 -/
 
-
 example (a b x y : ℝ) (h : a < b) (h3 : x ≤ y) : a + exp x < b + exp y := by {
-  refine add_lt_add_of_lt_of_le h ?h₂
-  exact exp_le_exp.mpr h3
+  sorry
   }
 
 
@@ -276,8 +255,7 @@ example (h : a = b) : c - exp b = c - exp a := by {
 #check (exp_le_exp.2 : a ≤ b → exp a ≤ exp b)
 
 example (h : a ≤ b) : exp a ≤ exp b := by {
-  apply exp_le_exp.2
-  exact h
+  sorry
   }
 
 example (h : a ≤ b) : exp a ≤ exp b := by {
@@ -289,8 +267,7 @@ example (h : exp a ≤ exp b) : a ≤ b := by {
   }
 
 example (h : exp a ≤ exp b) : a ≤ b := by {
-  apply exp_le_exp.1
-  exact h
+  sorry
   }
 
 example {p q : Prop} (h1 : p → q) (h2 : q → p) : p ↔ q := by {
@@ -309,15 +286,7 @@ def Injective (f : ℝ → ℝ) : Prop := ∀ x y : ℝ, f x = f y → x = y
 
 example (f g : ℝ → ℝ) (hg : Injective g) (hf : Injective f) :
     Injective (g ∘ f) := by {
-  unfold Injective
-  simp
-  -- can skip unfold and simp
-  intro x y h
-  unfold Injective at hf hg
-  -- have h_new : f x = f y := hg (f x) (f y) h
-  specialize hg (f x) (f y) h
-  specialize hf x y hg
-  exact hf
+  sorry
   }
 
 
@@ -338,11 +307,7 @@ Furthermore, we can decompose conjunction and equivalences.
 -/
 
 example (p q r s : Prop) (h : p → r) (h' : q → s) : p ∧ q → r ∧ s := by {
-  intro (hpq : p ∧ q)
-  obtain ⟨hp, hq⟩ := hpq
-  constructor
-  · exact h hp
-  · exact h' hq
+  sorry
   }
 
 end Real
