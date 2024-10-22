@@ -15,7 +15,7 @@ noncomputable section
 * The first assignment due 22.10.2023. Upload it to eCampus.
 
 **Two optional activities**
-* There is a weekly Lean hacking session 18 - 20 c.t. in seminar room 0.011.
+* There is a weekly Lean hacking session Wednesday 18 - 20 c.t. in seminar room 0.011.
 * There is a Lean seminar Fri 14 - 16 c.t. in N0.003.
   In the next few weeks (starting this Friday) we will explain
   monadic programming and metaprogramming in Lean.
@@ -37,6 +37,10 @@ the argument must lie in the domain of the function.  -/
 #check 1
 #check fun x : ℝ ↦ x^2
 #check (fun x : ℝ ↦ x^2) (π + 3)
+#check ℕ
+#check Type
+#check Type*
+#check Type 1 → Type 6
 
 /- Statements have type `Prop` and predicates on `A` have type `A → Prop`. -/
 #check 3 < π
@@ -69,13 +73,20 @@ We can do this with the `have` tactic.
 `exact` or `assumption` can be used to finish the proof.
 -/
 
-example (p q r : Prop) (hq : p → q) (hr : p → q → r) : p → r := by {
-  sorry
+example (p q r : Prop) (hq : p → q) (hr : p → (q → r)) : p → r := by {
+  intro (hp : p)
+  have h : q := hq hp
+  have h2 := hr hp h
+  -- have h3 := h2 h
+  exact h2
   }
 
 /- We can also use `specialize` to apply a hypothesis to arguments. -/
 example (p q r : Prop) (hq : p → q) (hr : p → q → r) : p → r := by {
-  sorry
+  intro hp
+  specialize hq hp
+  specialize hr hp hq
+  assumption
   }
 
 /-
@@ -86,8 +97,17 @@ We do this with the `apply` tactic.
 -/
 
 example (p q r s : Prop) (hq : p → s → q) (hr : q → r) : s → p → r := by {
-  sorry
+  exact fun hs hp ↦ hr (hq hp hs)
   }
+
+-- example (p q r s : Prop) (hq : p → s → q) (hr : q → r) : s → p → r := by {
+--   show_term
+--   intro hs hp
+--   apply hr
+--   apply hq
+--   · assumption
+--   · assumption
+--   }
 
 /- We can also use `exact` or `refine` with more complicated proof terms. -/
 example (p q r : Prop) (hq : p → p → q) (hr : q → r) : p → r := by {
@@ -109,7 +129,11 @@ variable (f g : ℝ → ℝ)
 #check (Continuous.add : Continuous f → Continuous g → Continuous (fun x ↦ f x + g x))
 
 example : Continuous (fun x ↦ 2 + x * Real.sin x) := by {
-  sorry
+  apply Continuous.add
+  · exact continuous_const
+  refine Continuous.mul ?_ ?_
+  · exact continuous_id'
+  · exact continuous_sin
   }
 
 
@@ -152,7 +176,8 @@ You can often find similar theorems nearby the theorem you searched for.
 -/
 
 example (a b x y : ℝ) (h : a < b) (h3 : x ≤ y) : a + exp x < b + exp y := by {
-  sorry
+  refine add_lt_add_of_lt_of_le h ?h₂
+  exact exp_le_exp.mpr h3
   }
 
 
@@ -195,16 +220,21 @@ example (h₀ : a = b) (h₁ : b < c) (h₂ : c ≤ d) (h₃ : d < e) : a < e :=
     _ ≤ d := h₂
     _ < e := h₃
 
+example (h : a ≤ b) (h2 : b ≤ c) : a ≤ c := by
+  trans b
+  · assumption
+  · assumption
+
 /- `linarith` can prove inequalities (and equalities)
   that follow from linear combinations of assumptions. -/
 
 example (h₀ : a = b) (h₁ : b < c) (h₂ : c ≤ d) (h₃ : d < e) : a < e := by {
-  sorry
+  linarith
   }
 
 example (x y z : ℝ) (hx : x ≤ 3 * y) (h2 : ¬ y > 2 * z)
     (h3 : x ≥ 6 * z) : x = 3 * y := by {
-  sorry
+  linarith
   }
 
 
@@ -215,17 +245,24 @@ example (x y z : ℝ) (hx : x ≤ 3 * y) (h2 : ¬ y > 2 * z)
 #check (mul_le_mul_of_nonneg_right : b ≤ c → 0 ≤ a → b * a ≤ c * a)
 
 example (ha : 0 ≤ a) (hb : 0 ≤ b) (h : 0 ≤ c) : a * (b + 2) ≤ (a + c) * (b + 2) := by {
-  sorry
+  refine mul_le_mul_of_nonneg ?h₁ ?h₂ ha ?d0
+  all_goals linarith
+  }
+
+example (ha : 0 ≤ a) (hb : 0 ≤ b) (h : 0 ≤ c) : a * (b + 2) ≤ (a + c) * (b + 2) := by {
+  gcongr
+  linarith
   }
 
 /- `gcongr` is very convenient for monotonicity of functions. -/
 
 example (h : a ≤ b) (h2 : b ≤ c) : exp a ≤ exp c := by {
-  sorry
+  gcongr
+  linarith
   }
 
 example (h : a ≤ b) : c - exp b ≤ c - exp a := by {
-  sorry
+  gcongr
   }
 
 example (ha : 0 ≤ a) (hb : 0 ≤ b) (h : 0 ≤ c) : a * (b + 2) ≤ (a + c) * (b + 2) := by {
@@ -235,7 +272,9 @@ example (ha : 0 ≤ a) (hb : 0 ≤ b) (h : 0 ≤ c) : a * (b + 2) ≤ (a + c) * 
 /- Remark: for equalities, you should use `congr` instead of `gcongr` -/
 
 example (h : a = b) : c - exp b = c - exp a := by {
-  sorry
+  congr
+  symm
+  exact h
   }
 
 
@@ -255,23 +294,29 @@ example (h : a = b) : c - exp b = c - exp a := by {
 #check (exp_le_exp.2 : a ≤ b → exp a ≤ exp b)
 
 example (h : a ≤ b) : exp a ≤ exp b := by {
-  sorry
+  apply exp_le_exp.2
+  exact h
   }
 
 example (h : a ≤ b) : exp a ≤ exp b := by {
-  sorry
+  rw [exp_le_exp]
+  exact h
   }
 
 example (h : exp a ≤ exp b) : a ≤ b := by {
-  sorry
+  apply exp_le_exp.1
+  exact h
   }
 
 example (h : exp a ≤ exp b) : a ≤ b := by {
-  sorry
+  rw [exp_le_exp] at h
+  exact h
   }
 
 example {p q : Prop} (h1 : p → q) (h2 : q → p) : p ↔ q := by {
-  sorry
+  constructor
+  · exact h1
+  · exact h2
   }
 
 /- ## Universal quantification
@@ -286,7 +331,15 @@ def Injective (f : ℝ → ℝ) : Prop := ∀ x y : ℝ, f x = f y → x = y
 
 example (f g : ℝ → ℝ) (hg : Injective g) (hf : Injective f) :
     Injective (g ∘ f) := by {
-  sorry
+  unfold Injective
+  simp
+  -- intro (x : ℝ) (y : ℝ)
+  intro x y h
+  unfold Injective at hf hg
+  -- have h_new : f x = f y := hg (f x) (f y) h
+  specialize hg (f x) (f y) h
+  specialize hf x y hg
+  exact hf
   }
 
 
@@ -307,7 +360,11 @@ Furthermore, we can decompose conjunction and equivalences.
 -/
 
 example (p q r s : Prop) (h : p → r) (h' : q → s) : p ∧ q → r ∧ s := by {
-  sorry
+  intro (hpq : p ∧ q)
+  obtain ⟨hp, hq⟩ := hpq
+  constructor
+  · exact h hp
+  · exact h' hq
   }
 
 end Real
