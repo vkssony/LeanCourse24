@@ -30,7 +30,7 @@ theorem hard : FermatLastTheorem :=
 #check hard
 
 -- Here are some proofs.
-example : ∀ m n : Nat, Even n → Even (m * n) := fun m n ⟨k, (hk : n = k + k)⟩ ↦
+example : ∀ m n : Nat, Even n → Even (m * n) := fun m n ⟨k, (hk : n = k + k)⟩ ↦ --what is fun doing here? how do we have hk?
   have hmn : m * n = m * k + m * k := by rw [hk, mul_add]
   show ∃ l, m * n = l + l from ⟨_, hmn⟩
 
@@ -39,7 +39,7 @@ fun m n ⟨k, hk⟩ ↦ ⟨m * k, by rw [hk, mul_add]⟩
 
 example : ∀ m n : Nat, Even n → Even (m * n) := by
   -- Say `m` and `n` are natural numbers, and assume `n = 2 * k`.
-  rintro m n ⟨k, hk⟩
+  rintro m n ⟨k, hk⟩ -- what do ⟨⟩ mean, how do we use that n is even
   -- We need to prove `m * n` is twice a natural number. Let's show it's twice `m * k`.
   use m * k
   -- Substitute for `n`,

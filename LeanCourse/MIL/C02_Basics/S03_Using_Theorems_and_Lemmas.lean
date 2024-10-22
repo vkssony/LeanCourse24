@@ -19,7 +19,7 @@ variable (h : a ≤ b) (h' : b ≤ c)
 end
 
 example (x y z : ℝ) (h₀ : x ≤ y) (h₁ : y ≤ z) : x ≤ z := by
-  apply le_trans
+  apply le_trans -- what does goal being ℝ mean? where does third goal go?
   · apply h₀
   · apply h₁
 
@@ -37,14 +37,16 @@ example (x : ℝ) : x ≤ x :=
   le_refl x
 
 #check (le_refl : ∀ a, a ≤ a)
-#check (le_trans : a ≤ b → b ≤ c → a ≤ c)
+#check (le_trans : a ≤ b → b ≤ c → a ≤ c) -- difference for these le_refl and le_trans?
 #check (lt_of_le_of_lt : a ≤ b → b < c → a < c)
 #check (lt_of_lt_of_le : a < b → b ≤ c → a < c)
 #check (lt_trans : a < b → b < c → a < c)
 
 -- Try this.
 example (h₀ : a ≤ b) (h₁ : b < c) (h₂ : c ≤ d) (h₃ : d < e) : a < e := by
-  sorry
+  apply lt_trans
+  · apply lt_of_le_of_lt h₀ h₁
+  · apply lt_of_le_of_lt h₂ h₃
 
 example (h₀ : a ≤ b) (h₁ : b < c) (h₂ : c ≤ d) (h₃ : d < e) : a < e := by
   linarith
@@ -86,21 +88,25 @@ example (h₀ : a ≤ b) (h₁ : c < d) : a + exp c + e < b + exp d + e := by
     apply exp_lt_exp.mpr h₁
   apply le_refl
 
-example (h₀ : d ≤ e) : c + exp (a + d) ≤ c + exp (a + e) := by sorry
+example (h₀ : d ≤ e) : c + exp (a + d) ≤ c + exp (a + e) := by
+  apply add_le_add_left
+  apply exp_le_exp.mpr
+  apply add_le_add_left h₀
 
 example : (0 : ℝ) < 1 := by norm_num
 
 example (h : a ≤ b) : log (1 + exp a) ≤ log (1 + exp b) := by
-  have h₀ : 0 < 1 + exp a := by sorry
+  have h₀ : 0 < 1 + exp a := by linarith[exp_pos a]
   apply log_le_log h₀
-  sorry
+  apply add_le_add_left (exp_le_exp.mpr h)
 
 example : 0 ≤ a ^ 2 := by
-  -- apply?
   exact sq_nonneg a
 
+
 example (h : a ≤ b) : c - exp b ≤ c - exp a := by
-  sorry
+  refine sub_le_sub_left ?h c
+  exact exp_le_exp.mpr h
 
 example : 2 * a * b ≤ a ^ 2 + b ^ 2 := by
   have h : 0 ≤ a ^ 2 - 2 * a * b + b ^ 2
@@ -118,9 +124,33 @@ example : 2 * a * b ≤ a ^ 2 + b ^ 2 := by
   calc
     a ^ 2 - 2 * a * b + b ^ 2 = (a - b) ^ 2 := by ring
     _ ≥ 0 := by apply pow_two_nonneg
+  linarith -- how does linarith know to use h? I though you had to specify
+
+
+theorem a_sub_b_sq : 2 * a * b ≤ a ^ 2 + b ^ 2 := by
+  have h : 0 ≤ a ^ 2 - 2 * a * b + b ^ 2
+  calc
+    a ^ 2 - 2 * a * b + b ^ 2 = (a - b) ^ 2 := by ring
+    _ ≥ 0 := by apply pow_two_nonneg
+  linarith
+
+theorem a_add_b_sq : -2 * a * b ≤ a ^ 2 + b ^ 2 := by
+  have h : 0 ≤ a ^ 2 + 2 * a * b + b ^ 2
+  calc
+    a ^ 2 + 2 * a * b + b ^ 2 = (a + b) ^ 2 := by ring
+    _ ≥ 0 := by apply pow_two_nonneg
   linarith
 
 example : |a * b| ≤ (a ^ 2 + b ^ 2) / 2 := by
-  sorry
+  have h : (0 : ℝ ) < 2 := by norm_num
+  apply abs_le'.mpr
+  constructor
+  -- · apply (le_div_iff₀ h) why doesn't work?
+  · rw[le_div_iff₀' h]
+    rw[← mul_assoc]
+    apply a_sub_b_sq
+  · rw[le_div_iff₀' h]
+    rw[← neg_mul_comm,← mul_assoc]
+    apply a_add_b_sq -- why doesn't exact work?
 
 #check abs_le'.mpr
