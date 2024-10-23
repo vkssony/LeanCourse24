@@ -23,7 +23,7 @@ example : ∃ x : ℝ, 2 < x ∧ x < 3 :=
   ⟨5 / 2, h⟩
 
 example : ∃ x : ℝ, 2 < x ∧ x < 3 :=
-  ⟨5 / 2, by norm_num⟩
+  ⟨5 / 2, by norm_num⟩ -- ask about this
 
 def FnUb (f : ℝ → ℝ) (a : ℝ) : Prop :=
   ∀ x, f x ≤ a

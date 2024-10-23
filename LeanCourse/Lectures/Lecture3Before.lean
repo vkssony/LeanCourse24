@@ -10,6 +10,7 @@ noncomputable section
 # Practical remarks
 * Assignment 3 due on 29.10.2023. Upload it to eCampus.
 -/
+-- if we have to update lean on Friday, git pull and under ∀, go to project actions and Fetch Matlib build cache
 
 /- # Last Week -/
 
@@ -18,6 +19,8 @@ Tactics we saw last time:
 * to search for a lemma, use `exact?`, `apply?`, `rw?`,
   `#loogle`, `#leansearch` or autocomplete
 * `linarith`, `gcongr` and `calc` for reasoning with inequalities
+* `gcongr` only looks at goal, constructs new goals?
+*
 * How to work with `→` and `∀`.
   - `intro` for introducing a hypothesis
   - `have` or `specialize` for forwards reasoning
@@ -50,7 +53,11 @@ example {α : Type*} [PartialOrder α]
     (isDense : ∀ x y : α, x < y → ∃ z : α, x < z ∧ z < y)
     (x y : α) (hxy : x < y) :
     ∃ z₁ z₂ : α, x < z₁ ∧ z₁ < z₂ ∧ z₂ < y := by {
-  sorry
+  obtain ⟨z, hz⟩ := isDense x y hxy -- can't do use yet because no object
+  obtain ⟨hxz, hzy⟩ := hz
+  obtain ⟨z', hzz', hz'y⟩ := isDense z y hzy --same as last two steps in one line
+  use z, z'
+  -- if you do use z' z, wrong order gives unprovable statement
   }
 
 
@@ -86,12 +93,33 @@ variable (a b : ℝ)
 #check (mul_eq_zero : a * b = 0 ↔ a = 0 ∨ b = 0)
 
 example : a = a * b → a = 0 ∨ b = 1 := by {
-  sorry
+  intro h
+  have h2 : a * (b - 1) = 0 := by linarith -- why linarith? has multiplication?
+  have h3 : a = 0 ∨ b - 1  = 0 := mul_eq_zero.1 h2
+  obtain ha|hb := h3
+  · left
+    exact ha
+  · right
+    exact sub_eq_zero.1 hb
+    -- linarith also works
   }
 
 
 example (f : ℝ → ℝ) (hf : StrictMono f) : Injective f := by {
-  sorry
+  -- simp [Injective] (sometimes does more)
+  -- rw [Injective]
+  -- unfold Injective
+  intro x y hxy -- intro can also unfold
+  have tri := lt_trichotomy x y
+  unfold StrictMono at hf
+  obtain h|h|h := tri
+  · specialize hf h -- curly praces mean that it will infer using x y
+    linarith -- sees contradiction
+  · exact h
+  · specialize hf h
+    linarith
+
+
   }
 
 
@@ -108,9 +136,16 @@ example {p : Prop} (h : p) : ¬ ¬ p := by
   intro h2
   exact h2 h
 
-
+--weird way to think aobut negation
 example {α : Type*} {p : α → Prop} : ¬ (∃ x, p x) ↔ ∀ x, ¬ p x := by {
-  sorry
+  constructor
+  · intro h x hx
+    apply h
+    use x
+  · intro h h2
+    obtain ⟨x, hx⟩ := h2
+    exact h x hx
+
   }
 
 
@@ -118,7 +153,9 @@ example {α : Type*} {p : α → Prop} : ¬ (∃ x, p x) ↔ ∀ x, ¬ p x := by
 /- We can use `exfalso` to use the fact that
 everything follows from `False`: ex falso quod libet -/
 example {p : Prop} (h : ¬ p) : p → 0 = 1 := by {
-  sorry
+  intro h2
+  exfalso
+  exact h h2
   }
 
 
@@ -168,12 +205,32 @@ def SequentialLimit (u : ℕ → ℝ) (l : ℝ) : Prop :=
 
 example (u : ℕ → ℝ) (l : ℝ) : ¬ SequentialLimit u l ↔
     ∃ ε > 0, ∀ N, ∃ n ≥ N, |u n - l| ≥ ε := by {
-  sorry
+  unfold SequentialLimit
+  push_neg
+  rfl
+
   }
 
 lemma sequentialLimit_unique (u : ℕ → ℝ) (l l' : ℝ) :
     SequentialLimit u l → SequentialLimit u l' → l = l' := by {
-  sorry
+  -- unfold SequentialLimit
+  intro h1 h2
+  by_contra h
+  let d := |l -l'|
+  have hd : d > 0 := by exact abs_sub_pos.mpr h
+  specialize h1 (d/2) (half_pos hd)
+  obtain ⟨N, hN⟩ := h1
+  obtain ⟨N', hN'⟩ := h2 (d/2) (half_pos hd)
+  let N₀ := max N N'
+  specialize hN N₀ (Nat.le_max_left N N')
+  specialize hN' N₀ (Nat.le_max_right N N')
+  have contra := calc
+    d = |l - l'| := rfl
+    _ = |(u N₀ -l')-(u N₀ -l)| := by ring
+    _ ≤ |u N₀ - l'| + |u N₀ -l| := by exact abs_sub (u N₀ - l') (u N₀ - l)
+    _ < d/2 + d/2 := by gcongr
+    _ = d := by ring
+  exact lt_irrefl d contra
   }
 
 
@@ -202,7 +259,7 @@ variable {α β ι : Type*} (x : α) (s t u : Set α)
 #check s ∩ t       -- \inter or \cap
 #check s ∪ t       -- \union or \cup
 #check s \ t       -- it is the normal symbol `\` on your keyboard,
-                   -- but you have to write `\\` or `\ ` to enter it
+                   -- but you have to write `\\` or `\ ` or `\setminus` to enter it
 #check sᶜ          -- \compl or \^c
 #check (∅ : Set α) -- \empty
 #check (Set.univ : Set α)
@@ -257,12 +314,20 @@ example (hxs : x ∈ s) : x ∈ s ∪ t := by
 #check subset_def
 
 example : s ∩ t ⊆ s ∩ (t ∪ u) := by {
-  sorry
+  -- rw[subset_def]
+  -- unfold subset_def why no work
+  intro x hx
+  obtain ⟨hxs, hxt⟩ := hx
+  constructor
+  · assumption
+  · left
+    assumption
   }
 
 /- you can also prove it at thge level of sets, without talking about elements. -/
 example : s ∩ t ⊆ s ∩ (t ∪ u) := by {
-  sorry
+  gcongr
+  exact subset_union_left
   }
 
 
@@ -286,6 +351,9 @@ example : s ∩ t = t ∩ s := by
   · intro hx
     exact ⟨hx.2, hx.1⟩
 
+
+--function extensionality: (f=g) ↔ ∀ x, f x = g x (more on it later)
+
 /- We can also use existing lemmas and `calc`. -/
 example : (s ∪ tᶜ) ∩ t = s ∩ t := by
   calc (s ∪ tᶜ) ∩ t
@@ -305,7 +373,10 @@ def Evens : Set ℕ := {n : ℕ | Even n}
 def Odds : Set ℕ := {n | Odd n}
 
 example : Evensᶜ = Odds := by {
-  sorry
+  unfold Evens Odds
+  ext n
+  simp?
+  --simp? tells you lemma used
   }
 
 
