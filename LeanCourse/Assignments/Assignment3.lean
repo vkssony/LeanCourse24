@@ -100,7 +100,25 @@ end Set
 /- Prove the following with basic tactics, without using `tauto` or lemmas from Mathlib. -/
 lemma exists_distributes_over_or {α : Type*} {p q : α → Prop} :
     (∃ x, p x ∨ q x) ↔ (∃ x, p x) ∨ (∃ x, q x) := by {
-  sorry
+  constructor
+  · intro h
+    obtain ⟨x, hx⟩  := h
+    obtain hp|hq := hx
+    · left
+      use x
+    · right
+      use x
+  · intro h
+    obtain hep|heq := h
+    · obtain ⟨x,hx⟩ := hep
+      use x
+      left
+      exact hx
+    · obtain ⟨x,hx⟩ := heq
+      use x
+      right
+      exact hx
+
   }
 
 section Surjectivity
@@ -118,7 +136,18 @@ example : (g ∘ f) x = g (f x) := by simp
 
 lemma surjective_composition (hf : SurjectiveFunction f) :
     SurjectiveFunction (g ∘ f) ↔ SurjectiveFunction g := by {
-  sorry
+  unfold SurjectiveFunction
+  constructor
+  · intro h z
+    obtain ⟨x,hx⟩ := h z
+    use f x
+    apply hx
+  · intro hg z
+    obtain ⟨y,hy⟩ := hg z
+    obtain ⟨x,hx⟩ := hf y
+    rw[← hx] at hy
+    use x
+    apply hy
   }
 
 /- When composing a surjective function by a linear function
@@ -126,7 +155,15 @@ to the left and the right, the result will still be a
 surjective function. The `ring` tactic will be very useful here! -/
 lemma surjective_linear (hf : SurjectiveFunction f) :
     SurjectiveFunction (fun x ↦ 2 * f (3 * (x + 4)) + 1) := by {
-  sorry
+  unfold SurjectiveFunction
+  unfold SurjectiveFunction at hf
+  intro z
+  obtain ⟨x,hx⟩ := hf ((z-1)/2)
+  let y := (x/3)-4
+  use y
+  ring
+  rw[hx]
+  ring
   }
 
 /- Let's prove Cantor's theorem:
@@ -135,7 +172,21 @@ Hint: use `let R := {x | x ∉ f x}` to consider the set `R` of elements `x`
 that are not in `f x`
 -/
 lemma exercise_cantor (α : Type*) (f : α → Set α) : ¬ Surjective f := by {
-  sorry
+  let R := {x | x ∉ f x}
+  intro h
+  obtain ⟨a, ha⟩ := h R
+  by_cases haR : a ∈ f a
+  · rw[ha] at haR
+    have hanR: a ∉ R := by
+      rw[mem_setOf, ha] at haR
+      assumption -- compress possible?
+    apply hanR haR
+  · rw[ha] at haR
+    have hanR: a ∈ R := by
+      rw[mem_setOf, ha] at haR
+      apply not_not_mem.mp at haR
+      assumption
+    apply haR hanR
   }
 
 end Surjectivity
@@ -144,13 +195,67 @@ end Surjectivity
 lemma sequentialLimit_add {s t : ℕ → ℝ} {a b : ℝ}
       (hs : SequentialLimit s a) (ht : SequentialLimit t b) :
     SequentialLimit (fun n ↦ s n + t n) (a + b) := by {
-  sorry
+  unfold SequentialLimit
+  intro ε hεp
+  unfold SequentialLimit at hs ht
+  obtain ⟨Ns, hNs⟩ := hs (ε/2) (half_pos hεp)
+  obtain ⟨Nt, hNt⟩ := ht (ε/2) (half_pos hεp)
+  let N := max Ns Nt
+  use N
+  intro n hn
+  have hnNs : n ≥ Ns := by
+    trans N
+    · assumption
+    · apply le_max_left
+  have hnNt : n ≥ Nt := by
+    trans N
+    · assumption
+    · apply le_max_right
+  specialize hNs n hnNs
+  specialize hNt n hnNt
+  simp
+  have hnice := calc
+   |s n + t n - (a + b)|=|(s n - a) + (t n - b)| := by ring
+   _ ≤ |s n - a| + |t n - b| := by apply abs_add
+   _ < ε/2 + ε/2 := by gcongr
+   _ = ε := by ring
+  exact hnice
   }
 
 /- It may be useful to case split on whether `c = 0` is true. -/
 lemma sequentialLimit_mul_const {s : ℕ → ℝ} {a : ℝ} (c : ℝ) (hs : SequentialLimit s a) :
     SequentialLimit (fun n ↦ c * s n) (c * a) := by {
-  sorry
+  by_cases hcz : c = 0
+  · rw[hcz]
+    simp
+    unfold SequentialLimit
+    intro ε hεp
+    use 1
+    intro n hn
+    simp
+    exact hεp
+  · intro ε hεp
+    have hεc : ε/|c|  > 0 := by
+      apply mul_pos
+      · assumption
+      · refine inv_pos_of_pos ?hb.a
+        apply abs_pos.mpr
+        apply hcz
+    obtain ⟨N, hN⟩ := hs (ε/|c|) hεc
+    use N
+    intro n hn
+    simp
+    specialize hN n hn
+    have hred := calc
+      |c * s n - c * a| = |c*(s n - a)| := by ring
+      _ = |c| * |s n - a| := by apply abs_mul
+      _ < |c| * (ε/|c|) := by apply mul_lt_mul_of_pos_left hN (abs_pos.mpr hcz)
+      _ = ε/|c| * |c| := by ring
+      _ = ε := by apply div_mul_cancel₀
+                  apply abs_ne_zero.mpr
+                  apply hcz -- ask for help unifying this nicer
+    exact hred
+
   }
 
 
