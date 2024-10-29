@@ -104,10 +104,8 @@ lemma exists_distributes_over_or {α : Type*} {p q : α → Prop} :
   · intro h
     obtain ⟨x, hx⟩  := h
     obtain hp|hq := hx
-    · left
-      use x
-    · right
-      use x
+    · left; use x
+    · right; use x
   · intro h
     obtain hep|heq := h
     · obtain ⟨x,hx⟩ := hep
@@ -171,6 +169,8 @@ there is no surjective function from any set to its power set.
 Hint: use `let R := {x | x ∉ f x}` to consider the set `R` of elements `x`
 that are not in `f x`
 -/
+
+#check mem_setOf
 lemma exercise_cantor (α : Type*) (f : α → Set α) : ¬ Surjective f := by {
   let R := {x | x ∉ f x}
   intro h
@@ -179,7 +179,7 @@ lemma exercise_cantor (α : Type*) (f : α → Set α) : ¬ Surjective f := by {
   · rw[ha] at haR
     have hanR: a ∉ R := by
       rw[mem_setOf, ha] at haR
-      assumption -- compress possible?
+      assumption
     apply hanR haR
   · rw[ha] at haR
     have hanR: a ∈ R := by
@@ -251,9 +251,10 @@ lemma sequentialLimit_mul_const {s : ℕ → ℝ} {a : ℝ} (c : ℝ) (hs : Sequ
       _ = |c| * |s n - a| := by apply abs_mul
       _ < |c| * (ε/|c|) := by apply mul_lt_mul_of_pos_left hN (abs_pos.mpr hcz)
       _ = ε/|c| * |c| := by ring
-      _ = ε := by apply div_mul_cancel₀
+      _ = ε := by
+                  apply div_mul_cancel₀
                   apply abs_ne_zero.mpr
-                  apply hcz -- ask for help unifying this nicer
+                  apply hcz
     exact hred
 
   }
@@ -279,7 +280,12 @@ def EventuallyGrowsFaster (s t : ℕ → ℕ) : Prop :=
 /- show that `n * s n` grows (eventually) faster than `s n`. -/
 lemma eventuallyGrowsFaster_mul_left :
     EventuallyGrowsFaster (fun n ↦ n * s n) s := by {
-  sorry
+  unfold EventuallyGrowsFaster
+  simp
+  intro k₀
+  use k₀
+  intro n₁ h1
+  exact Nat.mul_le_mul_right (s n₁) h1
   }
 
 /- Show that if `sᵢ` grows eventually faster than `tᵢ` then
@@ -287,13 +293,33 @@ lemma eventuallyGrowsFaster_mul_left :
 lemma eventuallyGrowsFaster_add {s₁ s₂ t₁ t₂ : ℕ → ℕ}
     (h₁ : EventuallyGrowsFaster s₁ t₁) (h₂ : EventuallyGrowsFaster s₂ t₂) :
     EventuallyGrowsFaster (s₁ + s₂) (t₁ + t₂) := by {
-  sorry
+  unfold EventuallyGrowsFaster at *
+  intro k₀
+  specialize h₁ k₀
+  specialize h₂ k₀
+  simp
+  obtain ⟨n₁, hn₁⟩ := h₁
+  obtain ⟨n₂, hn₂⟩ := h₂
+  -- let n₃ := max n₁ n₂
+  use max n₁ n₂
+  intro n hn
+  calc k₀ * (t₁ n + t₂ n) = k₀ * t₁ n + k₀ * t₂ n := by linarith
+                        _ ≤ s₁ n + s₂ n           := by apply Nat.add_le_add (hn₁ n (le_trans (Nat.le_max_left n₁ n₂) (hn))) (hn₂ n (le_trans (Nat.le_max_right n₁ n₂) (hn)))
   }
 
 /- Find a positive function that grows faster than itself when shifted by one. -/
 lemma eventuallyGrowsFaster_shift : ∃ (s : ℕ → ℕ),
     EventuallyGrowsFaster (fun n ↦ s (n+1)) s ∧ ∀ n, s n ≠ 0 := by {
-  sorry
+  use Nat.factorial
+  unfold EventuallyGrowsFaster
+  constructor
+  · intro k
+    use k
+    intro n hn
+    have h1 : k ≤ n + 1 := by linarith
+    calc k * n !  ≤ (n + 1) * n ! := by exact Nat.mul_le_mul_right n ! h1
+                _ = (n + 1) !     := by exact rfl
+  · exact fun n ↦ factorial_ne_zero n
   }
 
 end Growth
