@@ -115,7 +115,26 @@ lemma sequentialLimit_squeeze {s₁ s₂ s₃ : ℕ → ℝ} {a : ℝ}
 /- Prove this without using lemmas from Mathlib. -/
 lemma image_and_intersection {α β : Type*} (f : α → β) (s : Set α) (t : Set β) :
     f '' s ∩ t = f '' (s ∩ f ⁻¹' t) := by {
-  sorry
+  ext y
+  constructor
+  · intro h
+    simp
+    obtain ⟨y_img_s,yt⟩ := h
+    obtain ⟨x, hxs, hxy⟩ := y_img_s
+    use x
+    subst y
+    simp
+    exact ⟨hxs,yt⟩
+  · intro h
+    simp
+    obtain ⟨x, hx, hxy⟩ := h
+    subst y
+    obtain ⟨hxs, hxinvf⟩ := hx
+    simp at hxinvf
+    constructor
+    · use x
+    · exact hxinvf
+
   }
 
 /- Prove this by finding relevant lemmas in Mathlib. -/
@@ -131,6 +150,8 @@ Now prove the following example, mimicking the proof from the lecture.
 If you want, you can define `g` separately first.
 -/
 lemma inverse_on_a_set [Inhabited α] (hf : InjOn f s) : ∃ g : β → α, LeftInvOn g f s := by {
+  unfold InjOn at hf
+  unfold LeftInvOn
   sorry
   }
 
@@ -147,9 +168,31 @@ lemma set_bijection_of_partition {f : α → γ} {g : β → γ} (hf : Injective
     (h1 : range f ∩ range g = ∅) (h2 : range f ∪ range g = univ) :
     ∃ (L : Set α × Set β → Set γ) (R : Set γ → Set α × Set β), L ∘ R = id ∧ R ∘ L = id := by {
   -- h1' and h1'' might be useful later as arguments of `simp` to simplify your goal.
-  have h1' : ∀ x y, f x ≠ g y := by sorry
-  have h1'' : ∀ y x, g y ≠ f x := by sorry
-  have h2' : ∀ x, x ∈ range f ∪ range g := by sorry
+  have h1' : ∀ x y, f x ≠ g y := by
+    intro x y
+    have hfim: f x ∈ range f := mem_range_self x
+    have hgim: g y ∈ range g := mem_range_self y
+    intro fx_eq_gy
+    rw[fx_eq_gy] at hfim
+    have gyint: g y ∈ range f ∩ range g := by
+      exact ⟨hfim,hgim⟩
+    rw[h1] at gyint
+    apply gyint
+
+  have h1'' : ∀ y x, g y ≠ f x := by
+    intro y x
+    specialize h1' x y
+    intro gy_eq_fx
+    rw[eq_comm] at gy_eq_fx
+    apply h1'
+    apply gy_eq_fx
+
+
+  have h2' : ∀ x, x ∈ range f ∪ range g := by
+    intro x
+    rw[h2]
+    simp
+
   let L : Set α × Set β → Set γ := sorry
   let R : Set γ → Set α × Set β := sorry
   sorry
