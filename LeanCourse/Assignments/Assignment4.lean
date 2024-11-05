@@ -149,12 +149,27 @@ lemma preimage_square :
 Now prove the following example, mimicking the proof from the lecture.
 If you want, you can define `g` separately first.
 -/
+
+
+
+
+
 lemma inverse_on_a_set [Inhabited α] (hf : InjOn f s) : ∃ g : β → α, LeftInvOn g f s := by {
-  unfold InjOn at hf
+  let g : β → α :=
+    fun y ↦if h : (∃ x : α, x ∈ s ∧ f x = y) then h.choose else default
+  use g
   unfold LeftInvOn
-  sorry
+  intro x hxs
+  apply hf
+  · simp[g]
+    have hxcomb : ∃ z : α, z ∈ s ∧ (f z = f x) := by use x
+    simp[hxcomb.choose_spec, dif_pos hxcomb]
+  · assumption
+  · have hxcomb : ∃ z : α, z ∈ s ∧ (f z = f x) := by use x
+    simp[hxcomb.choose_spec, dif_pos hxcomb, g]
   }
 
+#check invFun_eq
 
 /- Let's prove that if `f : α → γ` and `g : β → γ` are injective function whose
 ranges partition `γ`, then `Set α × Set β` is in bijective correspondence to `Set γ`.
@@ -193,7 +208,57 @@ lemma set_bijection_of_partition {f : α → γ} {g : β → γ} (hf : Injective
     rw[h2]
     simp
 
-  let L : Set α × Set β → Set γ := sorry
-  let R : Set γ → Set α × Set β := sorry
-  sorry
+  let L : Set α × Set β → Set γ := fun x ↦ f '' x.1 ∪ g '' x.2
+  let R : Set γ → Set α × Set β := fun x ↦ (f ⁻¹' x, g ⁻¹' x)
+
+  use L, R
+  constructor
+  · ext G x
+    simp[L, R]
+    constructor
+    · intro hx
+      obtain hfx|hgx := hx
+      · obtain ⟨y, hyG, hxy⟩ := hfx
+        subst x
+        exact hyG
+      · obtain ⟨y, hyG, hxy⟩ := hgx
+        subst x
+        exact hyG
+    · intro hx
+      have hxfg : x ∈ range f ∪ range g := by rw[h2]; simp
+      obtain hfx|hgx := hxfg
+      · left
+        obtain ⟨y, hy⟩ := hfx
+        use y
+        subst x
+        tauto
+      · right
+        obtain ⟨y, hy⟩ := hgx
+        use y
+        subst x
+        tauto
+  · ext G x
+    · simp[L]
+      constructor
+      · intro hx
+        obtain ⟨y, hyg1, hyfx⟩|⟨y, hyg2, hygx⟩ := hx
+        · specialize hf hyfx
+          subst y
+          exact hyg1
+        · simp[h1''] at hygx
+      · intro hx
+        left
+        use x
+    · simp[L]
+      constructor
+      · intro hx
+        obtain ⟨y, hyg1, hyfx⟩|⟨y, hyg2, hygx⟩ := hx
+        · simp[h1'] at hyfx
+        · specialize hg hygx
+          subst y
+          exact hyg2
+      · intro hx
+        right
+        use x
+
   }
