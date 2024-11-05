@@ -30,14 +30,22 @@ variable {α β γ ι : Type*} (f : α → β) (x : α) (s : Set α)
 
 /- Prove this equivalence for sets. -/
 example : s = univ ↔ ∀ x : α, x ∈ s := by {
-  sorry
+  constructor
+  · intro hs x
+    rw [hs]
+    exact trivial
+  · intro h
+    ext x
+    exact (iff_true_right trivial).mpr (h x)
   }
 
 
 /- Prove the law of excluded middle without using `by_cases`/`tauto` or lemmas from the library.
 You will need to use `by_contra` in the proof. -/
 lemma exercise3_1 (p : Prop) : p ∨ ¬ p := by {
-  sorry
+  by_contra h
+  push_neg at h
+  exact (and_not_self_iff p).mp (id (And.symm h))
   }
 
 /- `α × β` is the cartesian product of the types `α` and `β`.
@@ -96,7 +104,18 @@ produces a sequence that converges to the same value. -/
 lemma sequentialLimit_reindex {s : ℕ → ℝ} {r : ℕ → ℕ} {a : ℝ}
     (hs : SequentialLimit s a) (hr : ∀ m : ℕ, ∃ N : ℕ, ∀ n ≥ N, r n ≥ m) :
     SequentialLimit (s ∘ r) a := by {
-  sorry
+  unfold SequentialLimit at *
+  simp
+  intro ε hε
+  specialize hs ε hε
+  obtain ⟨M, hM⟩ := hs
+  specialize hr M
+  obtain ⟨N, hN⟩ := hr
+
+  use N
+  intro n₀ h
+  have hrn : r n₀ ≥ M := by apply hN n₀ h
+  apply hM (r n₀) hrn
   }
 
 
@@ -107,7 +126,23 @@ lemma sequentialLimit_squeeze {s₁ s₂ s₃ : ℕ → ℝ} {a : ℝ}
     (hs₁ : SequentialLimit s₁ a) (hs₃ : SequentialLimit s₃ a)
     (hs₁s₂ : ∀ n, s₁ n ≤ s₂ n) (hs₂s₃ : ∀ n, s₂ n ≤ s₃ n) :
     SequentialLimit s₂ a := by {
-  sorry
+  unfold SequentialLimit at *
+  intro ε hε
+  specialize hs₁ ε hε
+  specialize hs₃ ε hε
+  obtain ⟨N₁, hN₁⟩ := hs₁
+  obtain ⟨N₃, hN₃⟩ := hs₃
+
+  use max N₁ N₃
+  intro n hn
+  have h1 := by apply hN₁ n (le_trans (le_max_left N₁ N₃) (hn))
+  have h3 := by apply hN₃ n (le_trans (le_max_right N₁ N₃) (hn))
+  rw [abs_lt] at *
+  constructor
+  · calc -ε < s₁ n - a := by apply h1.1
+          _ ≤ s₂ n - a := by exact tsub_le_tsub_right (hs₁s₂ n) a
+  · calc s₂ n - a ≤ s₃ n - a := by exact tsub_le_tsub_right (hs₂s₃ n) a
+                _ < ε := by exact h3.2
   }
 
 /- ## Sets -/
@@ -121,9 +156,13 @@ lemma image_and_intersection {α β : Type*} (f : α → β) (s : Set α) (t : S
 /- Prove this by finding relevant lemmas in Mathlib. -/
 lemma preimage_square :
     (fun x : ℝ ↦ x ^ 2) ⁻¹' {y | y ≥ 16} = { x : ℝ | x ≤ -4 } ∪ { x : ℝ | x ≥ 4 } := by {
-  sorry
+  ext x
+  simp
+  have h1 : (16 : ℝ) = 4 ^ 2 := by ring
+  rw [h1, sq_le_sq]
+  simp
+  exact le_abs'
   }
-
 
 /- `InjOn` states that a function is injective when restricted to `s`.
 `LeftInvOn g f s` states that `g` is a left-inverse of `f` when restricted to `s`.

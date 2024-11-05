@@ -22,31 +22,55 @@ open Real Function Set Nat
 
 
 example {p : ℝ → Prop} (h : ∀ x, p x) : ∃ x, p x := by {
-  sorry
+  use 1
+  exact h 1
   }
 
 
 example {α : Type*} {p q : α → Prop} (h : ∀ x, p x → q x) :
     (∃ x, p x) → (∃ x, q x) := by {
-  sorry
+  intro h
+  obtain ⟨x, hx⟩ := h
+  use x
+  exact h x hx
   }
 
 /- Prove the following with basic tactics, without using `tauto` or lemmas from Mathlib. -/
 example {α : Type*} {p : α → Prop} {r : Prop} :
     ((∃ x, p x) → r) ↔ (∀ x, p x → r) := by {
-  sorry
+  constructor
+  · sorry
+  · sorry
   }
 
 /- Prove the following with basic tactics, without using `tauto` or lemmas from Mathlib. -/
 example {α : Type*} {p : α → Prop} {r : Prop} :
     (∃ x, p x ∧ r) ↔ ((∃ x, p x) ∧ r) := by {
-  sorry
+  constructor
+  · intro h1
+    obtain ⟨x, hx⟩ := h1
+    constructor
+    · use x
+      exact hx.1
+    · exact hx.2
+  · intro h2
+    obtain ⟨x, hx⟩ := h2.1
+    use x
+    constructor
+    · exact hx
+    · exact h2.2
   }
 
 /- Prove the following without using `push_neg` or lemmas from Mathlib.
 You will need to use `by_contra` in the proof. -/
 example {α : Type*} (p : α → Prop) : (∃ x, p x) ↔ (¬ ∀ x, ¬ p x) := by {
-  sorry
+  constructor
+  · intro h₁
+    by_contra hx
+    obtain ⟨x, hx1⟩ := h₁
+    have hx2 : ¬p x := by exact hx x
+    exact hx2 hx1
+  · intro h₂
   }
 
 def SequentialLimit (u : ℕ → ℝ) (l : ℝ) : Prop :=
@@ -174,7 +198,12 @@ def EventuallyGrowsFaster (s t : ℕ → ℕ) : Prop :=
 /- show that `n * s n` grows (eventually) faster than `s n`. -/
 lemma eventuallyGrowsFaster_mul_left :
     EventuallyGrowsFaster (fun n ↦ n * s n) s := by {
-  sorry
+  unfold EventuallyGrowsFaster
+  simp
+  intro k₀
+  use k₀
+  intro n₁ h1
+  exact Nat.mul_le_mul_right (s n₁) h1
   }
 
 /- Show that if `sᵢ` grows eventually faster than `tᵢ` then
@@ -182,13 +211,33 @@ lemma eventuallyGrowsFaster_mul_left :
 lemma eventuallyGrowsFaster_add {s₁ s₂ t₁ t₂ : ℕ → ℕ}
     (h₁ : EventuallyGrowsFaster s₁ t₁) (h₂ : EventuallyGrowsFaster s₂ t₂) :
     EventuallyGrowsFaster (s₁ + s₂) (t₁ + t₂) := by {
-  sorry
+  unfold EventuallyGrowsFaster at *
+  intro k₀
+  specialize h₁ k₀
+  specialize h₂ k₀
+  simp
+  obtain ⟨n₁, hn₁⟩ := h₁
+  obtain ⟨n₂, hn₂⟩ := h₂
+  -- let n₃ := max n₁ n₂
+  use max n₁ n₂
+  intro n hn
+  calc k₀ * (t₁ n + t₂ n) = k₀ * t₁ n + k₀ * t₂ n := by linarith
+                        _ ≤ s₁ n + s₂ n           := by apply Nat.add_le_add (hn₁ n (le_trans (Nat.le_max_left n₁ n₂) (hn))) (hn₂ n (le_trans (Nat.le_max_right n₁ n₂) (hn)))
   }
 
 /- Find a positive function that grows faster than itself when shifted by one. -/
 lemma eventuallyGrowsFaster_shift : ∃ (s : ℕ → ℕ),
     EventuallyGrowsFaster (fun n ↦ s (n+1)) s ∧ ∀ n, s n ≠ 0 := by {
-  sorry
+  use Nat.factorial
+  unfold EventuallyGrowsFaster
+  constructor
+  · intro k
+    use k
+    intro n hn
+    have h1 : k ≤ n + 1 := by linarith
+    calc k * n !  ≤ (n + 1) * n ! := by exact Nat.mul_le_mul_right n ! h1
+                _ = (n + 1) !     := by exact rfl
+  · exact fun n ↦ factorial_ne_zero n
   }
 
 end Growth
