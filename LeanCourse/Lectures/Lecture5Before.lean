@@ -138,13 +138,19 @@ example : fac 4 = 24 := rfl
 
 theorem fac_pos (n : ℕ) : 0 < fac n := by {
   induction n with
-  | zero => sorry
-  | succ n ih => sorry
+  | zero =>
+    unfold fac
+    norm_num
+  | succ n ih =>
+    rw[fac]
+    positivity
 
   }
 
 open BigOperators Finset
 
+
+#check Finset.range
 /- We can use `∑ i in range (n + 1), f i` to take the sum `f 0 + f 1 + ⋯ + f n`. -/
 
 example (f : ℕ → ℝ) : ∑ i in range 0, f i = 0 :=
@@ -165,7 +171,12 @@ This makes it harder to prove things about it, so we generally avoid using it
 
 
 example (n : ℕ) : ∑ i in range (n + 1), (i : ℚ) = n * (n + 1) / 2 := by {
-  sorry
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw[Finset.sum_range_succ, ih]
+    field_simp
+    ring
   }
 
 /- Some other useful induction principles -/
@@ -176,7 +187,11 @@ example (n : ℕ) : ∑ i in range (n + 1), (i : ℚ) = n * (n + 1) / 2 := by {
 /- We can use other induction principles with `induction ... using ... with` -/
 
 theorem fac_dvd_fac (n m : ℕ) (h : n ≤ m) : fac n ∣ fac m := by {
-  sorry
+  induction m, h using Nat.le_induction with
+  | base => rfl
+  | succ k hk ih =>
+    rw[fac]
+    exact Dvd.dvd.mul_left ih (k + 1)
   }
 
 
@@ -196,6 +211,7 @@ For example in the structure below `Point` bundles three coordinates together.
 
 #check Point
 
+--the @ext notation allows you to use ext tactic
 
 
 
@@ -324,7 +340,8 @@ instance : Add Point := ⟨add⟩
 @[simp] lemma add_z (a b : Point) : (a + b).z = a.z + b.z := by rfl
 
 example (a b : Point) : a + b = b + a := by {
-  sorry
+  ext
+  all_goals simp [add_comm]
   }
 
 end Point
@@ -485,7 +502,7 @@ instance : AbelianGroup' ℤ where
 
 #eval AbelianGroup'.add (2 : ℤ) 5
 
-infixl:70 " +' " => AbelianGroup'.add
+infixl:65 " +' " => AbelianGroup'.add --70 is precedence of operation
 
 #eval (-2) +' 5
 
@@ -512,5 +529,5 @@ instance AbelianGroup'.prod (G G' : Type*) [AbelianGroup' G] [AbelianGroup' G'] 
   add_neg a := by ext <;> apply AbelianGroup'.add_neg
 
 /- Now Lean will figure out itself that `AbelianGroup' (ℤ × ℤ)`. -/
-set_option trace.Meta.synthInstance true in
+set_option trace.Meta.synthInstance true in -- just show some stack trace to show what lean is doing
 #check ((2, 3) : ℤ × ℤ) +' (4, 5)
