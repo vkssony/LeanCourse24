@@ -99,11 +99,13 @@ since `↑n - ↑m = ↑(n - m)` and `↑n / ↑m = ↑(n / m)` are not always t
 example (n : ℕ) : ((n + 1 : ℤ) : ℚ) = n + 1 := by norm_cast
 
 example (n m : ℕ) (h : (n : ℚ) + 1 ≤ m) : (n : ℝ) + 1 ≤ m := by {
-  sorry
+  norm_cast at h ⊢
   }
 
 example (n m : ℕ) (h : n = m * m + 2) : (n : ℝ) - 3 = (m + 1) * (m - 1) := by {
-  sorry
+  rw[h]
+  push_cast
+  ring
   }
 
 
@@ -135,7 +137,10 @@ example : fac 4 = 24 := rfl
 #eval fac 100
 
 theorem fac_pos (n : ℕ) : 0 < fac n := by {
-  sorry
+  induction n with
+  | zero => sorry
+  | succ n ih => sorry
+
   }
 
 open BigOperators Finset
