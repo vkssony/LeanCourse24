@@ -160,13 +160,13 @@ lemma inverse_on_a_set [Inhabited α] (hf : InjOn f s) : ∃ g : β → α, Left
   use g
   unfold LeftInvOn
   intro x hxs
-  apply hf
-  · simp[g]
-    have hxcomb : ∃ z : α, z ∈ s ∧ (f z = f x) := by use x
-    simp[hxcomb.choose_spec, dif_pos hxcomb]
-  · assumption
-  · have hxcomb : ∃ z : α, z ∈ s ∧ (f z = f x) := by use x
-    simp[hxcomb.choose_spec, dif_pos hxcomb, g]
+  have hxcomb : ∃ z : α, z ∈ s ∧ (f z = f x) := by use x
+  simp[dif_pos hxcomb, g]
+  unfold InjOn at hf
+  have ⟨hz, hzs⟩ := hxcomb.choose_spec
+  specialize hf hxs hz
+  tauto
+
   }
 
 #check invFun_eq
