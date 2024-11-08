@@ -221,6 +221,46 @@ lemma not_prime_iff (n : ℕ) :
     ¬ Nat.Prime n ↔ n = 0 ∨ n = 1 ∨ ∃ a b : ℕ, 2 ≤ a ∧ 2 ≤ b ∧ n = a * b := by {
   constructor
   · intro h
+    by_cases hzero_one : n = 0 ∨ n = 1
+    · rw[← or_assoc]; left; assumption
+    · push_neg at hzero_one
+      right; right
+      contrapose! h
+      have ngeq2: n ≥ 2 := (two_le_iff n).mpr hzero_one
+      apply Nat.prime_def_lt'.mpr
+      constructor
+      · exact ngeq2
+      · intro m hm1 hm2 mdvd
+        specialize h m
+        obtain ⟨d, mfac⟩ := mdvd
+        have dgeq2 : d ≥ 2 := by
+          sorry
+        specialize h d hm1 dgeq2
+        contradiction
+  · intro h -- how do this one line with rintro
+    obtain hn0|hn1|⟨a,b,ha,hb,hab⟩ := h
+    · intro np
+      rw[hn0] at np
+      exact Nat.not_prime_zero np
+    · intro np
+      rw[hn1] at np
+      exact Nat.not_prime_one np
+    · intro np
+      have a_dvd_n : a∣n := by exact Dvd.intro b (id (Eq.symm hab))
+      have b_dvd_n : b∣n := by exact Dvd.intro_left a (id (Eq.symm hab))
+      have aeqn : a = n := (dvd_prime_two_le np ha).mp a_dvd_n
+      have beqn : b = n := (dvd_prime_two_le np hb).mp b_dvd_n
+      rw[aeqn, beqn] at hab
+      have n01 : n = 0 ∨ n = 1 := by -- exact? doesn't work
+        apply eq_zero_or_one_of_sq_eq_self
+        exact IsIdempotentElem.pow_succ_eq 1 (id (Eq.symm hab))
+      have nneq01 : n ≠ 1 ∧ n ≠ 0 :=  ⟨Nat.Prime.ne_one np, Nat.Prime.ne_zero np⟩
+      tauto
+
+
+
+
+
 
   }
 
@@ -228,25 +268,33 @@ lemma prime_of_prime_two_pow_sub_one (n : ℕ) (hn : Nat.Prime (2 ^ n - 1)) : Na
   by_contra h2n
   rw [not_prime_iff] at h2n
   obtain rfl|rfl|⟨a, b, ha, hb, rfl⟩ := h2n
-  · sorry
-  · sorry
+  · norm_num at hn
+  · norm_num at hn
   have h : (2 : ℤ) ^ a - 1 ∣ (2 : ℤ) ^ (a * b) - 1
   · rw [← Int.modEq_zero_iff_dvd]
     calc (2 : ℤ) ^ (a * b) - 1
         ≡ ((2 : ℤ) ^ a) ^ b - 1 [ZMOD (2 : ℤ) ^ a - 1] := by sorry
       _ ≡ (1 : ℤ) ^ b - 1 [ZMOD (2 : ℤ) ^ a - 1] := by sorry
-      _ ≡ 0 [ZMOD (2 : ℤ) ^ a - 1] := by sorry
-  have h2 : 2 ^ 2 ≤ 2 ^ a := by sorry
-  have h3 : 1 ≤ 2 ^ a := by sorry
+      _ ≡ 0 [ZMOD (2 : ℤ) ^ a - 1] := by simp
+  have h2 : 2 ^ 2 ≤ 2 ^ a := by refine pow_le_pow_of_le_right ?hx ha; norm_num
+  have h3 : 1 ≤ 2 ^ a := by norm_num at h2; linarith
   have h4 : 2 ^ a - 1 ≠ 1 := by zify; simp [h3]; linarith
   have h5 : 2 ^ a - 1 < 2 ^ (a * b) - 1 := by
     apply tsub_lt_tsub_right_of_le h3
-    sorry
-  have h6' : 2 ^ 0 ≤ 2 ^ (a * b) := by sorry
+    apply Nat.pow_lt_pow_of_lt
+    norm_num
+    apply (Nat.lt_mul_iff_one_lt_right ?w.ha).mpr hb
+    linarith
+  have h6' : 2 ^ 0 ≤ 2 ^ (a * b) := by
+    refine pow_le_pow_of_le_right ?twozero ?hab
+    norm_num
+    exact Nat.zero_le (a * b)
   have h6 : 1 ≤ 2 ^ (a * b) := h6'
   have h' : 2 ^ a - 1 ∣ 2 ^ (a * b) - 1 := by norm_cast at h
   rw [Nat.prime_def_lt] at hn
-  sorry
+  obtain ⟨hn2ab, hprime⟩ := hn
+  specialize hprime (2 ^ a - 1) h5 h'
+  contradiction
   }
 
 /- Prove that for positive `a` and `b`, `a^2 + b` and `b^2 + a` cannot both be squares.
