@@ -219,7 +219,9 @@ is less well-behaved.
 
 lemma not_prime_iff (n : ℕ) :
     ¬ Nat.Prime n ↔ n = 0 ∨ n = 1 ∨ ∃ a b : ℕ, 2 ≤ a ∧ 2 ≤ b ∧ n = a * b := by {
-  sorry
+  constructor
+  · intro h
+
   }
 
 lemma prime_of_prime_two_pow_sub_one (n : ℕ) (hn : Nat.Prime (2 ^ n - 1)) : Nat.Prime n := by {
