@@ -185,15 +185,29 @@ Then state and prove the lemma that for any element of a strict bipointed type w
 `∀ z, z ≠ x₀ ∨ z ≠ x₁.` -/
 
 -- give the definition here
+structure StrictBipointed (α : Type) where
+  x₀ : α
+  x₁ : α
+  bipointed : x₀ ≠ x₁
 
 -- state and prove the lemma here
+lemma not_both_different_elements (z : α) : ∀ z, z ≠ x₀ ∨ z ≠ x₁ := by {
 
+}
 
 /- Prove by induction that `∑_{i = 0}^{n} i^3 = (∑_{i=0}^{n} i) ^ 2`. -/
 open Finset in
 lemma sum_cube_eq_sq_sum (n : ℕ) :
     (∑ i in range (n + 1), (i : ℚ) ^ 3) = (∑ i in range (n + 1), (i : ℚ)) ^ 2 := by {
-  sorry
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [Finset.sum_range_succ]
+    rw [ih]
+    -- norm_cast
+    push_cast
+    rw [Finset.sum_range_succ]
+
   }
 
 /-
