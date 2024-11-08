@@ -232,13 +232,18 @@ lemma not_prime_iff (n : ℕ) :
       · exact ngeq2
       · intro m hm1 hm2 mdvd
         specialize h m
+        have hmprop : m ∈ n.properDivisors := Nat.mem_properDivisors.mpr ⟨mdvd,hm2⟩
         obtain ⟨d, mfac⟩ := mdvd
+        have hmn : n/m = d := by
+          apply Nat.div_eq_of_eq_mul_right
+          linarith; assumption
+        have hnm1 : 1 < n/m := Nat.one_lt_div_of_mem_properDivisors hmprop
         have dgeq2 : d ≥ 2 := by
-          sorry
+          rw[hmn] at hnm1
+          exact hnm1
         specialize h d hm1 dgeq2
         contradiction
-  · intro h -- how do this one line with rintro
-    obtain hn0|hn1|⟨a,b,ha,hb,hab⟩ := h
+  · rintro (hn0|hn1|⟨a,b,ha,hb,hab⟩)
     · intro np
       rw[hn0] at np
       exact Nat.not_prime_zero np
@@ -251,7 +256,7 @@ lemma not_prime_iff (n : ℕ) :
       have aeqn : a = n := (dvd_prime_two_le np ha).mp a_dvd_n
       have beqn : b = n := (dvd_prime_two_le np hb).mp b_dvd_n
       rw[aeqn, beqn] at hab
-      have n01 : n = 0 ∨ n = 1 := by -- exact? doesn't work
+      have n01 : n = 0 ∨ n = 1 := by
         apply eq_zero_or_one_of_sq_eq_self
         exact IsIdempotentElem.pow_succ_eq 1 (id (Eq.symm hab))
       have nneq01 : n ≠ 1 ∧ n ≠ 0 :=  ⟨Nat.Prime.ne_one np, Nat.Prime.ne_zero np⟩
@@ -273,8 +278,14 @@ lemma prime_of_prime_two_pow_sub_one (n : ℕ) (hn : Nat.Prime (2 ^ n - 1)) : Na
   have h : (2 : ℤ) ^ a - 1 ∣ (2 : ℤ) ^ (a * b) - 1
   · rw [← Int.modEq_zero_iff_dvd]
     calc (2 : ℤ) ^ (a * b) - 1
-        ≡ ((2 : ℤ) ^ a) ^ b - 1 [ZMOD (2 : ℤ) ^ a - 1] := by sorry
-      _ ≡ (1 : ℤ) ^ b - 1 [ZMOD (2 : ℤ) ^ a - 1] := by sorry
+        ≡ ((2 : ℤ) ^ a) ^ b - 1 [ZMOD (2 : ℤ) ^ a - 1] := by
+          apply Int.ModEq.add_right
+          rw[pow_mul]
+      _ ≡ (1 : ℤ) ^ b - 1 [ZMOD (2 : ℤ) ^ a - 1] := by
+          apply Int.ModEq.add_right
+          apply Int.ModEq.pow
+          apply Int.ModEq.add_right_cancel' (-1 : ℤ )
+
       _ ≡ 0 [ZMOD (2 : ℤ) ^ a - 1] := by simp
   have h2 : 2 ^ 2 ≤ 2 ^ a := by refine pow_le_pow_of_le_right ?hx ha; norm_num
   have h3 : 1 ≤ 2 ^ a := by norm_num at h2; linarith
@@ -301,7 +312,19 @@ lemma prime_of_prime_two_pow_sub_one (n : ℕ) (hn : Nat.Prime (2 ^ n - 1)) : Na
 Prove it on paper first! -/
 lemma not_isSquare_sq_add_or (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     ¬ IsSquare (a ^ 2 + b) ∨ ¬ IsSquare (b ^ 2 + a) := by {
-  sorry
+      by_contra! h
+      obtain ⟨a2bsq, b2asq⟩ := h
+      unfold IsSquare at a2bsq b2asq
+
+      by_cases hab: a < b
+      · have hsq1: b ^ 2 < a + b ^ 2:= by linarith
+        have hsq2 : a + b ^ 2 < (b + 1)^2 := by linarith
+        apply Nat.not_exists_sq' hsq1 hsq2
+        apply symm
+
+
+
+
   }
 
 
@@ -338,8 +361,45 @@ Hints:
 -/
 attribute [-simp] card_powerset
 #check Finset.induction
+#check Finset.image
+#check Finset.instInsert
+#check Insert
+#check insert
 
 lemma fintype_card_powerset (α : Type*) (s : Finset α) :
     Finset.card (powerset s) = 2 ^ Finset.card s := by {
-  sorry
+  induction s using Finset.induction with
+  | empty =>
+    simp[Finset.card_empty, Finset.powerset_empty]
+  | @insert x s hxs ih =>
+    simp[Finset.powerset_insert, Finset.card_union]
+    have hdisj : s.powerset ∩ Finset.image (insert x) s.powerset = ∅ := by
+      ext a
+      constructor
+      · simp
+        rintro has y hy hnot
+        have hxina : x ∈ a := by
+          rw[← hnot]
+          exact mem_insert_self x y
+        have hxscontra : x ∈ s := by exact has hxina
+        contradiction
+      · tauto
+    have hinj : InjOn (insert x) (s.powerset : Set (Finset α)) := by
+      rintro a ha b hb hab
+      simp at ha hb
+      ext z
+      constructor
+      · intro haz
+        have hz_ins : z ∈ insert x a := Finset.mem_insert_of_mem haz
+        rw[hab] at hz_ins
+        have zneqx : z ≠ x := by exact ne_of_mem_of_not_mem (ha haz) hxs
+        exact Finset.mem_of_mem_insert_of_ne hz_ins zneqx
+      · intro hbz
+        have hz_ins : z ∈ insert x b := Finset.mem_insert_of_mem hbz
+        rw[← hab] at hz_ins
+        have zneqx : z ≠ x := by exact ne_of_mem_of_not_mem (hb hbz) hxs
+        exact Finset.mem_of_mem_insert_of_ne hz_ins zneqx
+    rw[hdisj, Finset.card_image_of_injOn hinj]
+    simp[Finset.card_insert_of_not_mem hxs, ih]
+    ring
   }

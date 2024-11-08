@@ -177,6 +177,7 @@ lemma inverse_on_a_set2 [Inhabited α] (hf : InjOn f s) : ∃ g : β → α, Lef
   intro x hxs
   have hxcomb : ∃ z ∈ s, f z = f x := by use x
   simp[hxcomb, g]
+  show choose hxcomb = x
 
   }
 
