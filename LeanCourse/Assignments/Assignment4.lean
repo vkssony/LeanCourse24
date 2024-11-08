@@ -169,6 +169,17 @@ lemma inverse_on_a_set [Inhabited α] (hf : InjOn f s) : ∃ g : β → α, Left
 
   }
 
+lemma inverse_on_a_set2 [Inhabited α] (hf : InjOn f s) : ∃ g : β → α, LeftInvOn g f s := by {
+  let g : β → α :=
+    fun y ↦if h : (∃ x : α, x ∈ s ∧ f x = y) then h.choose else default
+  use g
+  unfold LeftInvOn
+  intro x hxs
+  have hxcomb : ∃ z ∈ s, f z = f x := by use x
+  simp[hxcomb, g]
+
+  }
+
 #check invFun_eq
 
 /- Let's prove that if `f : α → γ` and `g : β → γ` are injective function whose
