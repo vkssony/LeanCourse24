@@ -313,17 +313,31 @@ Prove it on paper first! -/
 lemma not_isSquare_sq_add_or (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     ¬ IsSquare (a ^ 2 + b) ∨ ¬ IsSquare (b ^ 2 + a) := by {
       by_contra! h
-      obtain ⟨a2bsq, b2asq⟩ := h
-      unfold IsSquare at a2bsq b2asq
+      -- obtain ⟨a2bsq, b2asq⟩ := h
+      -- unfold IsSquare at a2bsq b2asq
 
-      by_cases hab: a < b
-      · have hsq1: b ^ 2 < a + b ^ 2:= by linarith
-        have hsq2 : a + b ^ 2 < (b + 1)^2 := by linarith
-        apply Nat.not_exists_sq' hsq1 hsq2
-        apply symm
-
-
-
+      have hneq : ∀ x > 0, ∀ y ≥ x, ¬ (IsSquare (x ^ 2 + y) ∧ IsSquare (y ^ 2 + x) ):= by
+        intro x hx y hy
+        have hsq1: y * y < x + y ^ 2:= by linarith
+        have hsq2 : x + y ^ 2 < (y + 1) * (y + 1) := by linarith
+        rw[not_and_or]
+        right
+        unfold IsSquare
+        rw[add_comm]
+        have hneg : ¬∃ t, t * t = x + y ^ 2 := Nat.not_exists_sq hsq1 hsq2
+        intro hr
+        obtain ⟨r, hr2⟩ := hr
+        apply hneg
+        use r
+        symm
+        exact hr2
+      by_cases hab : a ≤ b
+      · specialize hneq a ha b hab
+        contradiction
+      · have hab2 : b ≤ a := by linarith
+        specialize hneq b hb a hab2
+        symm at h
+        contradiction
 
   }
 
