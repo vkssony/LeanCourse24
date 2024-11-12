@@ -185,15 +185,11 @@ Then state and prove the lemma that for any element of a strict bipointed type w
 `∀ z, z ≠ x₀ ∨ z ≠ x₁.` -/
 
 -- give the definition here
-structure StrictBipointed (α : Type) where
-  x₀ : α
-  x₁ : α
-  bipointed : x₀ ≠ x₁
+structure StrictBipointed (α : Type*) where
+  bipointed : ∃ (x₀ x₁ : α), x₀ ≠ x₁
 
 -- state and prove the lemma here
-lemma not_both_different_elements (z : α) : ∀ z, z ≠ x₀ ∨ z ≠ x₁ := by {
-
-}
+lemma not_both_different_elements (α : Type*) (G : StrictBipointed α) : ∀ z, z ≠ x₀ ∨ z ≠ x₁ := by {}
 
 /- Prove by induction that `∑_{i = 0}^{n} i^3 = (∑_{i=0}^{n} i) ^ 2`. -/
 open Finset in
@@ -203,10 +199,22 @@ lemma sum_cube_eq_sq_sum (n : ℕ) :
   | zero => simp
   | succ n ih =>
     rw [Finset.sum_range_succ]
+    nth_rw 2 [Finset.sum_range_succ]
     rw [ih]
-    -- norm_cast
     push_cast
-    rw [Finset.sum_range_succ]
+    -- ring
+    have h : ∀ (n : ℕ), ∑ i in Finset.range n, i = n * (n - 1) / 2 := Finset.sum_range_id
+    norm_cast
+
+    rw [h (n+1 : ℕ)]
+
+    -- rw [Finset.sum_range_succ, ih, Finset.sum_range_succ,Finset.sum_range_succ, Finset.sum_range_succ]
+    -- -- push_cast
+    -- norm_cast
+    -- ring
+
+    -- rw [this n]
+
 
   }
 
@@ -220,7 +228,46 @@ original sequence.
 lemma disjoint_unions {ι α : Type*} [LinearOrder ι] [wf : WellFoundedLT ι] (A C : ι → Set α)
   (hC : ∀ i, C i = A i \ ⋃ j < i, A j) : Pairwise (Disjoint on C) ∧ ⋃ i, C i = ⋃ i, A i := by {
   have h := wf.wf.has_min -- this hypothesis allows you to use well-orderedness
-  sorry
+  constructor
+  · unfold Pairwise
+    intro i j hij
+    have h1 : C i ∩ C j = ∅ := by {
+      have hCi : C i ⊆ A i := by {
+        calc C i = A i \ ⋃ j < i, A j := by apply hC
+                _ ⊆ A i := by exact diff_subset
+      }
+      have hCj : C j ⊆ A j := by {
+        calc C j = A j \ ⋃ k < j, A k := by apply hC
+                _ ⊆ A j := by exact diff_subset
+      }
+      calc C i ∩ C j  = (A i \ ⋃ k < i, A k) ∩ (A j \ ⋃ k < j, A k) := by rw [hC, hC]
+
+
+
+    }
+    exact Set.disjoint_iff_inter_eq_empty.mpr h1
+  · ext x
+    constructor
+    · intro h1
+      apply mem_iUnion.1 at h1
+      have h2 : ∀ i, x ∈ C i → x ∈ A i := by {
+        intro i hCi
+        rw [hC i] at hCi
+        exact mem_of_mem_diff hCi
+      }
+      refine mem_iUnion.mpr ?right.h.mp.a
+      exact Exists.imp h2 h1
+
+    · intro h1
+      apply mem_iUnion.1 at h1
+      have h2 : ∀ i, x ∈ A i → ∃ j ≤ i, x ∈ C j := by {
+        intro i hAi
+        have h3 : ∃ j ≤ i, x ∈ A j ∧ (∀ k < j, x ∉ A k) := by sorry
+
+
+      }
+      refine mem_iUnion.mpr ?right.h.mpr.a
+      exact Exists.imp h2 h1
   }
 
 
@@ -265,7 +312,7 @@ lemma prime_of_prime_two_pow_sub_one (n : ℕ) (hn : Nat.Prime (2 ^ n - 1)) : Na
 Prove it on paper first! -/
 lemma not_isSquare_sq_add_or (a b : ℕ) (ha : 0 < a) (hb : 0 < b) :
     ¬ IsSquare (a ^ 2 + b) ∨ ¬ IsSquare (b ^ 2 + a) := by {
-  sorry
+      sorry
   }
 
 
@@ -275,7 +322,14 @@ behind notation. But you can use apply to use the lemmas about real numbers. -/
 
 abbrev PosReal : Type := {x : ℝ // 0 < x}
 
-def groupPosReal : Group PosReal := sorry
+def groupPosReal : Group PosReal where
+  mul a b:= a * b
+  one := 1
+  inv := sorry
+  mul_assoc a b c := sorry
+  one_mul := sorry
+  mul_one := sorry
+  inv_mul_cancel := sorry
 
 
 
