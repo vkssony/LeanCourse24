@@ -186,7 +186,13 @@ Then state and prove the lemma that for any element of a strict bipointed type w
 
 -- give the definition here
 
-@[ext] structure StrictBipointedType (α : Type*) where
+
+/-
+we were unsure on how to interpret what exactly the defintion meant
+so we created two different versions in case
+-/
+
+structure StrictBipointedType (α : Type*) where
   x₀ : α
   x₁ : α
   noteq : x₀ ≠ x₁
@@ -203,15 +209,21 @@ lemma SBT_disjunction (α : Type*) (x : StrictBipointedType α) : ∀ z, z ≠ x
 
 }
 
---we were unsure on how to interpret what exactly was the think we were looking for
--- give the definition here
-structure StrictBipointed (α : Type) where
-  x₀ : α
-  x₁ : α
-  bipointed : x₀ ≠ x₁
+
+
+structure StrictBipointed (α : Type*) where
+  bipointed : ∃ (x₀ x₁ : α), x₀ ≠ x₁
 
 -- state and prove the lemma here
-lemma not_both_different_elements (z : α) : ∀ z, z ≠ x₀ ∨ z ≠ x₁ := by {
+lemma not_both_different_elements (α : Type*) (G : StrictBipointed α) : ∀ z, ∃ x₀ : α, ∃ x₁ : α, z ≠ x₀ ∨ z ≠ x₁ := by {
+    intro z
+    obtain ⟨x₀,x₁,hx⟩ := G
+    use x₀, x₁
+    by_cases hcase: z = x₀
+    · right
+      exact ne_of_eq_of_ne hcase hx
+    · left
+      tauto
 
 }
 
@@ -384,8 +396,7 @@ lemma prime_of_prime_two_pow_sub_one (n : ℕ) (hn : Nat.Prime (2 ^ n - 1)) : Na
       _ ≡ (1 : ℤ) ^ b - 1 [ZMOD (2 : ℤ) ^ a - 1] := by
           apply Int.ModEq.add_right
           apply Int.ModEq.pow
-          apply Int.ModEq.add_right_cancel' (-1 : ℤ )
-
+          exact Int.modEq_sub (2 ^ a) 1
       _ ≡ 0 [ZMOD (2 : ℤ) ^ a - 1] := by simp
   have h2 : 2 ^ 2 ≤ 2 ^ a := by refine pow_le_pow_of_le_right ?hx ha; norm_num
   have h3 : 1 ≤ 2 ^ a := by norm_num at h2; linarith
