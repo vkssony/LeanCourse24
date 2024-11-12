@@ -186,14 +186,48 @@ Then state and prove the lemma that for any element of a strict bipointed type w
 
 -- give the definition here
 
+@[ext] structure StrictBipointedType (α : Type*) where
+  x₀ : α
+  x₁ : α
+  noteq : x₀ ≠ x₁
+
+
+#check StrictBipointedType
 -- state and prove the lemma here
+lemma SBT_disjunction (α : Type*) (x : StrictBipointedType α) : ∀ z, z ≠ x.x₀ ∨ z ≠ x.x₁ := by {
+  intro z
+  by_cases h : z = x.x₀
+  · right; subst z
+    exact x.noteq
+  · tauto
+
+}
+
 
 
 /- Prove by induction that `∑_{i = 0}^{n} i^3 = (∑_{i=0}^{n} i) ^ 2`. -/
 open Finset in
+
+lemma gauss_sum (n : ℕ) : ∑ i in range (n + 1), (i : ℚ) = n * (n + 1) / 2 := by {
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [Finset.sum_range_succ, ih]
+    field_simp
+    ring
+  }
+
 lemma sum_cube_eq_sq_sum (n : ℕ) :
     (∑ i in range (n + 1), (i : ℚ) ^ 3) = (∑ i in range (n + 1), (i : ℚ)) ^ 2 := by {
-  sorry
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw[sum_range_succ (fun x ↦ (x ^ 3 : ℚ)) (n+1), sum_range_succ (fun x ↦ (x : ℚ))]
+    rw[add_pow_two, ih, add_assoc, add_left_cancel_iff, gauss_sum]
+    norm_cast
+    ring
+    norm_cast
+    ring
   }
 
 /-
@@ -206,7 +240,61 @@ original sequence.
 lemma disjoint_unions {ι α : Type*} [LinearOrder ι] [wf : WellFoundedLT ι] (A C : ι → Set α)
   (hC : ∀ i, C i = A i \ ⋃ j < i, A j) : Pairwise (Disjoint on C) ∧ ⋃ i, C i = ⋃ i, A i := by {
   have h := wf.wf.has_min -- this hypothesis allows you to use well-orderedness
-  sorry
+  constructor
+  · intro i j hij
+    unfold Disjoint
+    simp
+    intro hnull hnull1 hnull2
+    ext x
+    constructor
+    · have hci : C i = A i \ ⋃ k < i, A k := by exact hC i
+      have hcj : C j = A j \ ⋃ k < j, A k := by exact hC j
+      intro hx
+      specialize hnull1 hx
+      specialize hnull2 hx
+      rw[hci] at hnull1
+      rw[hcj] at hnull2
+      obtain ⟨hxai, hxanoti⟩ := hnull1
+      obtain ⟨hxaj, hxanotj⟩ := hnull2
+      by_cases hiltj : i < j
+      · apply hxanotj
+        exact Set.mem_biUnion hiltj hxai
+      · have hjltj : j < i := by
+          apply LE.le.lt_of_ne
+          · exact not_lt.mp hiltj
+          · tauto
+        apply hxanoti
+        exact Set.mem_biUnion hjltj hxaj
+    · tauto
+  · ext x
+    constructor
+    · intro hx
+      obtain ⟨aj, haj1, haj2⟩ := hx
+      simp at haj1
+      obtain ⟨y, hy⟩ := haj1
+      specialize hC y
+      subst aj
+      rw[hC] at haj2
+      obtain ⟨hxay, hxanot⟩ := haj2
+      exact mem_iUnion_of_mem y hxay
+    · intro hx
+      simp at hx
+      obtain ⟨i, hi⟩ := hx
+      let g := {i : ι | x ∈ A i}
+      have gnemp : g.Nonempty := nonempty_of_mem hi
+      specialize h g gnemp
+      obtain ⟨a, ha1, ha2⟩ := h
+      simp
+      use a
+      specialize hC a
+      rw[hC]
+      simp
+      constructor
+      · exact ha1
+      · exact fun x_1 a a_1 ↦ ha2 x_1 a_1 a
+
+
+
   }
 
 
@@ -348,7 +436,21 @@ behind notation. But you can use apply to use the lemmas about real numbers. -/
 
 abbrev PosReal : Type := {x : ℝ // 0 < x}
 
-def groupPosReal : Group PosReal := sorry
+def groupPosReal : Group PosReal where
+  inv x := by
+    unfold PosReal
+    obtain ⟨a, ha⟩ := x
+    use a⁻¹
+    exact inv_pos_of_pos ha
+  inv_mul_cancel a := by
+    unfold PosReal at a
+    obtain ⟨x,hx⟩ := a
+    refine Eq.symm (Subtype.eq ?mk.a)
+    simp
+    refine (eq_inv_mul_iff_mul_eq₀ ?mk.a.hb).mpr ?mk.a.a
+    · linarith
+    · ring
+
 
 
 
