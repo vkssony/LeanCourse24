@@ -203,6 +203,18 @@ lemma SBT_disjunction (α : Type*) (x : StrictBipointedType α) : ∀ z, z ≠ x
 
 }
 
+--we were unsure on how to interpret what exactly was the think we were looking for
+-- give the definition here
+structure StrictBipointed (α : Type) where
+  x₀ : α
+  x₁ : α
+  bipointed : x₀ ≠ x₁
+
+-- state and prove the lemma here
+lemma not_both_different_elements (z : α) : ∀ z, z ≠ x₀ ∨ z ≠ x₁ := by {
+
+}
+
 
 
 /- Prove by induction that `∑_{i = 0}^{n} i^3 = (∑_{i=0}^{n} i) ^ 2`. -/
