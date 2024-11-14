@@ -49,9 +49,13 @@ Lean has a hierarchy of universes. -/
 universe u v
 #check Type u
 #check Type (v + 3)
+-- #check Type (u + v)
 #check Type (max u v)
 #check fun (α : Type u) (β : Type v) ↦ α → β
 -- #check Type (u + v) -- the operations on universes are very limited.
+
+-- #check (ℝ : Type 1)
+#check (ULift ℝ : Type 1)
 
 /-
 * `Type*` means `Type u` for a *variable* `u`
@@ -80,6 +84,12 @@ example : Type (u + 3) = Type _ := by rfl
 #check Sort (u + 1)
 #check Sort*
 
+def myId (X : Type*) : X  → X := fun x ↦ x
+#check myId
+#check myId.{17}
+#check myId.{0} ℝ
+#check myId ℝ
+
 
 /- ## A note on coercions
 
@@ -93,6 +103,8 @@ for numbers.
 #check fun n : ℕ ↦ (n : ℚ)
 
 abbrev PosReal : Type := {x : ℝ // x > 0}
+
+-- #check PosReal
 
 instance : Coe PosReal Real := ⟨fun x ↦ x.1⟩
 
@@ -154,6 +166,9 @@ variable (s : Set ℝ)
 #check (s : Type)
 
 example (s : Set ℝ) (x : s) : (x : ℝ) ∈ s := x.2
+example (s : Set ℝ) (x : s) : x.1 ∈ s := x.2
+example (s : Set ℝ) (x : ℝ) (hx : x ∈ s) : x ∈ s := hx
+example (s : Set ℝ) (x y : s) : x.1 + y = y + x := by linarith
 end
 
 /- However, subtypes are often not that convenient to work with,
@@ -162,7 +177,14 @@ and generally it's easier to reformulate a statement without using subtypes. -/
 
 /- Codomain is a subtype (usually not recommended). -/
 example (f : ℝ → PosReal) (hf : Monotone f) :
-    Monotone (fun x ↦ log (f x)) := sorry
+    Monotone (fun x ↦ log (f x)) := by {
+      unfold Monotone at *
+      simp
+      intro a b hab
+      specialize hf hab
+      refine log_le_log ?hx hf
+      sorry
+    }
 
 /- Specify that the range is a subset of a given set (recommended). -/
 example (f : ℝ → ℝ) (hf : range f ⊆ {x | x > 0}) (h2f : Monotone f) :
@@ -200,6 +222,7 @@ lemma names of these two structures. -/
 #check AddMonoid
 
 example : CommMonoid ℝ := by infer_instance
+#synth CommMonoid ℝ
 example : AddCommMonoid ℝ := by infer_instance
 example (x : ℝ) : x + 0 = x := add_zero x
 example (x : ℝ) : x * 1 = x := mul_one x
@@ -236,7 +259,7 @@ The additive version is called `AddMonoidHom` and denoted by `M →+ N`.
 They both have a coercion to functions. -/
 
 example {M N : Type*} [Monoid M] [Monoid N] (x y : M) (f : M →* N) :
-    f (x * y) = f x * f y := by exact?
+    f (x * y) = f x * f y := by exact MonoidHom.map_mul f x y
 
 example {M N : Type*} [AddMonoid M] [AddMonoid N] (f : M →+ N) : f 0 = 0 :=
   f.map_zero
@@ -308,7 +331,7 @@ This type is automatically coerced to morphisms and functions.
 -/
 
 example {G H : Type*} [Group G] [Group H] (f : G ≃* H) :
-    f.trans f.symm = MulEquiv.refl G := by exact?
+    f.trans f.symm = MulEquiv.refl G := by exact MulEquiv.self_trans_symm f
 
 
 
@@ -440,6 +463,9 @@ If `H` is not normal, this stands for the left cosets of `H`.
 -/
 
 section QuotientGroup
+
+/- If `H` is an arbitary subgroup, `G⧸H` is the type of left cosets of `H`-/
+example {G : Type*} [Group G] (H : Subgroup G) : Type _ := G ⧸ H
 
 example {G : Type*} [Group G] (H : Subgroup G) [H.Normal] :
     Group (G ⧸ H) := by infer_instance
