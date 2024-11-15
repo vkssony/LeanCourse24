@@ -80,6 +80,9 @@ example : Type (u + 3) = Type _ := by rfl
 #check Sort (u + 1)
 #check Sort*
 
+def myID (X : Type*): X → X := fun x ↦x
+#check myID.{18} ℝ
+
 
 /- ## A note on coercions
 
@@ -162,11 +165,23 @@ and generally it's easier to reformulate a statement without using subtypes. -/
 
 /- Codomain is a subtype (usually not recommended). -/
 example (f : ℝ → PosReal) (hf : Monotone f) :
-    Monotone (fun x ↦ log (f x)) := sorry
+    Monotone (fun x ↦ log (f x)) := by
+    unfold Monotone at hf ⊢
+    intro a b hab
+    simp
+    specialize hf hab
+    apply log_le_log
+    · exact (f a).2
+    · apply hf
 
 /- Specify that the range is a subset of a given set (recommended). -/
 example (f : ℝ → ℝ) (hf : range f ⊆ {x | x > 0}) (h2f : Monotone f) :
-  Monotone (log ∘ f) := sorry
+  Monotone (log ∘ f) := by
+  intro a b hab
+  simp
+  have fapos : f a > 0 := by
+    exact hf (mem_range_self a)
+  exact log_le_log fapos (h2f hab)
 
 /- Domain is a subtype (not recommended). -/
 example (f : PosReal → ℝ) (hf : Monotone f) :
@@ -175,10 +190,15 @@ example (f : PosReal → ℝ) (hf : Monotone f) :
 /- Only specify that a function is well-behaved
 on a subset of its domain (recommended). -/
 example (f : ℝ → ℝ) (hf : MonotoneOn f {x | x > 0}) :
-    Monotone (fun x ↦ f (exp x)) := sorry
-
-
-
+    Monotone (fun x ↦ f (exp x)) := by
+    unfold Monotone
+    intro a b hab
+    simp
+    unfold MonotoneOn at hf
+    apply hf
+    · apply exp_pos
+    · apply exp_pos
+    · exact (exp_le_exp.mpr hab)
 
 
 /- # Additive vs Multiplicative classes. -/
@@ -195,6 +215,8 @@ one written using `(*, 1, ⁻¹)` and one using `(+, 0, -)`. -/
 `(ℝ, +, 0)` and `(ℝ, *, 1)` are both monoids,
 and we want to have a distinction in notation and
 lemma names of these two structures. -/
+
+--additive notation is not assumed to be commutative
 
 #check Monoid
 #check AddMonoid
@@ -440,6 +462,8 @@ If `H` is not normal, this stands for the left cosets of `H`.
 -/
 
 section QuotientGroup
+
+example {G : Type*} [Group G] (H : Subgroup G) : Type _ := G ⧸ H
 
 example {G : Type*} [Group G] (H : Subgroup G) [H.Normal] :
     Group (G ⧸ H) := by infer_instance
