@@ -54,7 +54,7 @@ example (f : ℝ → ℝ) (hf : MonotoneOn f {x | x > 0}) :
   }
 
 
-
+section practice
 variable {G H K : Type*} [Group G] [Group H] [Group K]
 open Subgroup
 
@@ -96,7 +96,7 @@ example (x : X) : (1 : G) • x = x := by exact?
 /- Now show that `conjugate` specifies a group action from `G` onto its subgroups. -/
 instance : MulAction G (Subgroup G) := sorry
 
-
+end practice
 
 /-! # Exercises to hand-in. -/
 
@@ -105,7 +105,15 @@ instance : MulAction G (Subgroup G) := sorry
 Let's define the smallest equivalence relation on a type `X`. -/
 def myEquivalenceRelation (X : Type*) : Setoid X where
   r x y := x = y
-  iseqv := sorry -- Here you have to show that this is an equivalence.
+  iseqv := {
+    refl := by exact fun x ↦ rfl
+    symm := by exact fun {x y} a ↦ id (Eq.symm a)
+    trans := by {
+      intro x y z hxy hyz
+      rw [hxy]
+      exact hyz
+    }
+  } -- Here you have to show that this is an equivalence.
                  -- If you click on the `sorry`, a lightbulb will appear to give the fields
 
 /- This simp-lemma will simplify `x ≈ y` to `x = y` in the lemma below. -/
@@ -123,8 +131,15 @@ Use `Quotient.ind` to prove something for all elements of a quotient.
 You can use this using the induction tactic: `induction x using Quotient.ind; rename_i x`.
 -/
 def quotient_equiv_subtype (X : Type*) :
-    Quotient (myEquivalenceRelation X) ≃ X := sorry
-
+    Quotient (myEquivalenceRelation X) ≃ X where
+      toFun := Quotient.lift (fun x ↦ x) (by simp)
+      invFun := Quotient.mk (myEquivalenceRelation X)
+      left_inv := by
+        apply Quotient.ind
+        simp
+      right_inv := by
+        unfold Function.RightInverse LeftInverse
+        simp
 
 
 section GroupActions
@@ -137,12 +152,60 @@ precisely when one element is in the orbit of the other. -/
 def orbitOf (x : X) : Set X := range (fun g : G ↦ g • x)
 
 lemma orbitOf_eq_iff (x y : X) : orbitOf G x = orbitOf G y ↔ y ∈ orbitOf G x := by {
-  sorry
+  constructor
+  · intro h
+    have h2 : y ∈ orbitOf G y := by {
+      unfold orbitOf Set.range
+      refine mem_setOf.mpr ?_
+      use 1
+      exact MulAction.one_smul y
+    }
+    rw [← h] at h2
+    exact h2
+  · intro h
+    unfold orbitOf Set.range at h
+    have h2 : ∃ g₁, (fun g : G ↦ g • x) g₁ = y := by exact h
+    unfold orbitOf Set.range
+    ext x₁
+    constructor
+    · intro h3
+      simp at h3 ⊢
+      obtain ⟨g, hg⟩ := h2
+      obtain ⟨g1, hg1⟩ := h3
+      have h4 : x = g⁻¹ • y := by exact eq_inv_smul_iff.mpr hg
+      use g1 * g⁻¹
+      calc (g1 * g⁻¹) • y = g1 • (g⁻¹ • y)  := by exact mul_smul g1 g⁻¹ y
+                        _ = g1 • x          := by rw [h4]
+                        _ = x₁              := by rw [hg1]
+    · intro h3
+      simp at h3 ⊢
+      obtain ⟨g, hg⟩ := h2
+      obtain ⟨g1, hg1⟩ := h3
+      have h4 : y = g • x := by exact id (Eq.symm hg)
+      use g1 * g
+      calc (g1 * g) • x = g1 • (g • x)  := by exact mul_smul g1 g x
+                        _ = g1 • y          := by rw [h4]
+                        _ = x₁              := by rw [hg1]
   }
 
 /- Define the stabilizer of an element `x` as the subgroup of elements
 `g ∈ G` that satisfy `g • x = x`. -/
-def stabilizerOf (x : X) : Subgroup G := sorry
+def stabilizerOf (x : X) : Subgroup G where
+  carrier := {g : G | g • x = x}
+  mul_mem' := by {
+    intro a b ha hb
+    simp at ha hb ⊢
+    rw [mul_smul a b x, hb, ha]
+  }
+  one_mem' := by simp
+  inv_mem' := by {
+    simp
+    intro g hg
+    calc g⁻¹ • x  = g⁻¹ • (g • x) := by rw [hg]
+                _ = (g⁻¹ * g) • x := by exact smul_smul g⁻¹ g x
+                _ = (1:G) • x := by group
+                _ = x := by exact MulAction.one_smul x
+  }
 
 -- This is a lemma that allows `simp` to simplify `x ≈ y` in the proof below.
 @[simp] theorem leftRel_iff {x y : G} {s : Subgroup G} :
@@ -154,9 +217,49 @@ def stabilizerOf (x : X) : Subgroup G := sorry
 Hint: Only define the forward map (as a separate definition),
 and use `Equiv.ofBijective` to get an equivalence.
 (Note that we are coercing `orbitOf G x` to a (sub)type in the right-hand side) -/
-def orbit_stabilizer_theorem (x : X) : G ⧸ stabilizerOf G x ≃ orbitOf G x := by {
-  sorry
-  }
+
+#check Equiv.ofBijective
+
+def orbit_stab_map (x: X) :  G ⧸ stabilizerOf G x → (orbitOf G x)  := by
+  refine Quotient.lift (fun g ↦ ⟨g • x, ?_⟩) ?_
+  · unfold orbitOf
+    exact mem_range_self g
+  · intro a b hab
+    simp at hab ⊢
+    unfold stabilizerOf at hab
+    simp at hab
+    refine eq_inv_smul_iff.mp ?refine_2.a
+    rw[← MulAction.mul_smul]
+    tauto
+
+
+
+
+def orbit_stabilizer_theorem (x : X) : G ⧸ stabilizerOf G x ≃ orbitOf G x := by
+  apply Equiv.ofBijective (orbit_stab_map G x)
+  unfold Bijective
+  constructor
+  · intro a b hab
+    unfold orbit_stab_map at hab
+    obtain ⟨ag, hag⟩ := Quotient.exists_rep a
+    obtain ⟨bg, hbg⟩ := Quotient.exists_rep b
+    subst a b
+    apply Quotient.sound
+    simp at hab ⊢
+    simp[stabilizerOf]
+    rw[MulAction.mul_smul]
+    apply eq_inv_smul_iff.mp
+    simp
+    tauto
+  · intro b
+    unfold orbitOf at b
+    obtain ⟨c, ⟨g, hg⟩⟩ := b
+    use g
+    simp[orbit_stab_map]
+    exact SetCoe.ext hg
+
+
+
 
 
 end GroupActions
