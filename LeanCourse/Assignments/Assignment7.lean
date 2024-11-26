@@ -145,15 +145,55 @@ open Nat Finset in
 lemma add_pow_eq_pow_add_pow (x y : R) : (x + y) ^ p = x ^ p + y ^ p := by {
   have hp' : p.Prime := hp.out
   have range_eq_insert_Ioo : range p = insert 0 (Ioo 0 p)
-  · sorry
+  · rw[Finset.Ioo_insert_left]
+    simp
+    exact pos_of_neZero p
   have dvd_choose : ∀ i ∈ Ioo 0 p, p ∣ Nat.choose p i := by
-    sorry
+    simp
+    intro i hi0 hip
+    have dvd_mul : p ∣ Nat.choose p i ∨ p ∣ (i.factorial * (p-i).factorial) := by
+      refine Prime.dvd_or_dvd (Nat.prime_iff.mp hp') ?_
+      rw[Nat.choose_eq_factorial_div_factorial]
+      rw[mul_comm, Nat.mul_div_cancel']
+      · apply Nat.dvd_factorial
+        · exact pos_of_neZero p
+        · exact Nat.le_refl p
+      · apply Nat.factorial_mul_factorial_dvd_factorial
+        linarith
+      · linarith
+    obtain h|h := dvd_mul
+    · tauto
+    · apply False.elim
+      apply Prime.dvd_or_dvd ( (Nat.prime_iff.mp hp') ) at h
+      obtain a|b := h
+      · have ha := (Nat.Prime.dvd_factorial hp').mp a
+        linarith
+      · have hb := (Nat.Prime.dvd_factorial hp').mp b
+        omega
   have h6 : ∑ i in Ioo 0 p, x ^ i * y ^ (p - i) * Nat.choose p i = 0 :=
   calc
     _ =  ∑ i in Ioo 0 p, x ^ i * y ^ (p - i) * 0 := by
-      sorry
-    _ = 0 := by sorry
-  sorry
+      apply sum_equiv
+      pick_goal 3
+      · tauto
+      · tauto
+      · intro i hi
+        have h8 : ((p.choose i) : R) = 0 := by
+          specialize dvd_choose i hi
+          refine (CharP.cast_eq_zero_iff R p (p.choose i)).mpr dvd_choose
+        rw[h8]
+        tauto
+    _ = 0 := by simp
+  rw[add_pow]
+  rw[← add_sum_erase _ _ (Finset.self_mem_range_succ p)]
+  have h9 : (range (p+1)).erase p = range p := by
+    rw[Finset.range_add_one]
+    apply Finset.erase_insert (Finset.not_mem_range_self)
+  rw[h9, range_eq_insert_Ioo]
+  rw[Finset.sum_insert, h6]
+  simp
+  exact left_not_mem_Ioo
+
   }
 
 
