@@ -145,15 +145,55 @@ open Nat Finset in
 lemma add_pow_eq_pow_add_pow (x y : R) : (x + y) ^ p = x ^ p + y ^ p := by {
   have hp' : p.Prime := hp.out
   have range_eq_insert_Ioo : range p = insert 0 (Ioo 0 p)
-  · sorry
+  · rw[Finset.Ioo_insert_left]
+    simp
+    exact pos_of_neZero p
   have dvd_choose : ∀ i ∈ Ioo 0 p, p ∣ Nat.choose p i := by
-    sorry
+    simp
+    intro i hi0 hip
+    have dvd_mul : p ∣ Nat.choose p i ∨ p ∣ (i.factorial * (p-i).factorial) := by
+      refine Prime.dvd_or_dvd (Nat.prime_iff.mp hp') ?_
+      rw[Nat.choose_eq_factorial_div_factorial]
+      rw[mul_comm, Nat.mul_div_cancel']
+      · apply Nat.dvd_factorial
+        · exact pos_of_neZero p
+        · exact Nat.le_refl p
+      · apply Nat.factorial_mul_factorial_dvd_factorial
+        linarith
+      · linarith
+    obtain h|h := dvd_mul
+    · tauto
+    · apply False.elim
+      apply Prime.dvd_or_dvd ( (Nat.prime_iff.mp hp') ) at h
+      obtain a|b := h
+      · have ha := (Nat.Prime.dvd_factorial hp').mp a
+        linarith
+      · have hb := (Nat.Prime.dvd_factorial hp').mp b
+        omega
   have h6 : ∑ i in Ioo 0 p, x ^ i * y ^ (p - i) * Nat.choose p i = 0 :=
   calc
     _ =  ∑ i in Ioo 0 p, x ^ i * y ^ (p - i) * 0 := by
-      sorry
-    _ = 0 := by sorry
-  sorry
+      apply sum_equiv
+      pick_goal 3
+      · tauto
+      · tauto
+      · intro i hi
+        have h8 : ((p.choose i) : R) = 0 := by
+          specialize dvd_choose i hi
+          refine (CharP.cast_eq_zero_iff R p (p.choose i)).mpr dvd_choose
+        rw[h8]
+        tauto
+    _ = 0 := by simp
+  rw[add_pow]
+  rw[← add_sum_erase _ _ (Finset.self_mem_range_succ p)]
+  have h9 : (range (p+1)).erase p = range p := by
+    rw[Finset.range_add_one]
+    apply Finset.erase_insert (Finset.not_mem_range_self)
+  rw[h9, range_eq_insert_Ioo]
+  rw[Finset.sum_insert, h6]
+  simp
+  exact left_not_mem_Ioo
+
   }
 
 
@@ -169,20 +209,38 @@ for modules over a ring, so feel free to think of `M₁`, `M₂`, `N` and `M'` a
 You might recognize this as the characterization of a *coproduct* in category theory. -/
 
 def coproduct (f : M₁ →ₗ[R] N) (g : M₂ →ₗ[R] N) : M₁ × M₂ →ₗ[R] N where
-  toFun x := sorry
-  map_add' x y := sorry
-  map_smul' r x := sorry
+  toFun x := f x.1 + g x.2
+  map_add' x y := by {
+    simp
+    abel
+  }
+  map_smul' r x := by simp
 
 -- this can be useful to have as a simp-lemma, and should be proven by `rfl`
 @[simp] lemma coproduct_def (f : M₁ →ₗ[R] N) (g : M₂ →ₗ[R] N) (x : M₁) (y : M₂) :
-  coproduct f g (x, y) = sorry := sorry
+  coproduct f g (x, y) = f x + g y := by rfl
 
 lemma coproduct_unique {f : M₁ →ₗ[R] N} {g : M₂ →ₗ[R] N} {l : M₁ × M₂ →ₗ[R] N} :
     l = coproduct f g ↔
     l.comp (LinearMap.inl R M₁ M₂) = f ∧
     l.comp (LinearMap.inr R M₁ M₂) = g := by {
-  sorry
+      constructor
+      · intro h
+        constructor
+        · ext x
+          rw [h]
+          simp
+        · ext x
+          rw [h]
+          simp
+      · intro ⟨h1, h2⟩
+        ext ⟨x, y⟩
+        simp
+        rw [←h1, ←h2]
+        simp
+        have hxy : (x, y) = (x, 0) + (0, y) := by simp
+        calc l (x, y) = l ((x, 0) + (0, y)) := by rw [hxy]
+                    _ = l (x, 0) + l (0, y) := by exact LinearMap.map_add l (x, 0) (0, y)
   }
-
 
 end LinearMap
