@@ -6,15 +6,24 @@ open Set Filter Topology
 def principal {α : Type*} (s : Set α) : Filter α
     where
   sets := { t | s ⊆ t }
-  univ_sets := sorry
-  sets_of_superset := sorry
-  inter_sets := sorry
+  univ_sets := subset_univ s
+  sets_of_superset := fun hx hy ↦ Subset.trans hx hy
+  inter_sets := fun hx hy ↦ Set.subset_inter hx hy
 
 example : Filter ℕ :=
   { sets := { s | ∃ a, ∀ b, a ≤ b → b ∈ s }
-    univ_sets := sorry
-    sets_of_superset := sorry
-    inter_sets := sorry }
+    univ_sets := by use 0; simp
+    sets_of_superset := by
+      rintro x y ⟨a,ha⟩ hxy
+      use a
+      tauto
+    inter_sets := by
+      rintro x y ⟨N, hN⟩ ⟨M, hM⟩
+      use max N M
+      intro b hb
+      rw[Nat.max_le] at hb
+      constructor <;> tauto
+       }
 
 def Tendsto₁ {X Y : Type*} (f : X → Y) (F : Filter X) (G : Filter Y) :=
   ∀ V ∈ G, f ⁻¹' V ∈ F
@@ -33,8 +42,11 @@ example {X Y : Type*} (f : X → Y) (F : Filter X) (G : Filter Y) :
     ∀ {α β γ} {f : Filter α} {m : α → β} {m' : β → γ}, map m' (map m f) = map (m' ∘ m) f)
 
 example {X Y Z : Type*} {F : Filter X} {G : Filter Y} {H : Filter Z} {f : X → Y} {g : Y → Z}
-    (hf : Tendsto₁ f F G) (hg : Tendsto₁ g G H) : Tendsto₁ (g ∘ f) F H :=
-  sorry
+    (hf : Tendsto₁ f F G) (hg : Tendsto₁ g G H) : Tendsto₁ (g ∘ f) F H := by
+    unfold Tendsto₁ at *
+    intro V hV
+    specialize hf (g ⁻¹' V) (hg V hV)
+    tauto
 
 variable (f : ℝ → ℝ) (x₀ y₀ : ℝ)
 

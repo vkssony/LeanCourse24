@@ -203,19 +203,33 @@ lemma technical_filter_exercise {ι α : Type*} {p : ι → Prop} {q : Prop} {a 
     Tendsto (fun i ↦ if p i then a else b) L (if q then F else G) := by {
   have hab : a ≠ b
   · apply (Eventually.filter_mono haF hbF)
-  -- · intro haeqb
-  --   substs b
-  --   rw[Filter.le_def] at haF
-  --   specialize haF {x | x ≠ a} hbF
-  --   rw[mem_pure] at haF
-  --   tauto
   rw [tendsto_iff_eventually]
   constructor
-  · intro h p1 hy
+  · intro hi p1 hy
+    apply Eventually.mono hi
+    intro x hpxq
+    split
+    rename_i h
+    · rw[← hpxq] at hy
+      simp[h] at hy
+      apply Eventually.filter_mono haF at hy
+      tauto
+    · rename_i h
+      rw[← hpxq] at hy
+      simp[h] at hy
+      apply Eventually.filter_mono hbG at hy
+      tauto
+  · intro h
+    by_cases qcase: q
+    · simp[qcase] at h ⊢
+      specialize h hbF
+      simp[hab] at h
+      assumption
+    · simp[qcase] at h ⊢
+      specialize h haG
+      simp at h
+      tauto
 
-
-  · intro hp
-    sorry
   }
 
 /- To be more concrete, we can use the previous lemma to prove the following.
@@ -231,6 +245,16 @@ lemma tendsto_indicator_iff {ι : Type*} {L : Filter ι} {s : ι → Set ℝ} {t
     (ha : ∀ x, f x ≠ 0) :
     (∀ x, ∀ᶠ i in L, x ∈ s i ↔ x ∈ t) ↔
     Tendsto (fun i ↦ indicator (s i) f) L (𝓝 (indicator t f)) := by {
-
+      rw[tendsto_pi_nhds, forall_congr']
+      intro x
+      rw[indicator_apply, apply_ite 𝓝]
+      have hbF : ∀ᶠ y in 𝓝 (f x), y ≠ 0 := by
+        exact ContinuousAt.eventually_ne (fun ⦃U⦄ a ↦ a) (ha x)
+      have haG : ∀ᶠ y in 𝓝 0, y ≠ f x := by
+        exact ContinuousAt.eventually_ne (fun ⦃U⦄ a ↦ a) fun a ↦ ha x (id (Eq.symm a))
+      have haF : pure (f x) ≤ 𝓝 (f x) := by apply pure_le_nhds
+      have hbG : pure (0 : ℝ)  ≤ 𝓝 (0 : ℝ) := by apply pure_le_nhds
+      unfold indicator
+      exact technical_filter_exercise hbF haG haF hbG
 
   }
