@@ -187,5 +187,10 @@ lemma mono_exercise_part1_copy {f : α → α} (hf : Continuous f) (h2f : Inject
 /- Prove the following using the change of variables theorem. -/
 lemma change_of_variables_exercise (f : ℝ → ℝ) :
     ∫ x in (0)..π, sin x * f (cos x) = ∫ y in (-1)..1, f y := by {
-  sorry
+      -- simp_rw[mul_comm]
+      -- have h := by
+      --   apply @intervalIntegral.integral_comp_mul_deriv 0 π cos (-1 * sin) f
+      --   · sorry
+      --   · sorry
+
   }

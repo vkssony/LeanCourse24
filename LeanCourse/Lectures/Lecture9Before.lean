@@ -83,7 +83,10 @@ example (x : ℝ) : DifferentiableAt ℝ sin x :=
 example (x : ℝ) :
     HasDerivAt (fun x ↦ Real.cos x + Real.sin x)
     (Real.cos x - Real.sin x) x := by {
-  sorry
+  rw [sub_eq_neg_add]
+  apply HasDerivAt.add
+  · exact hasDerivAt_cos x
+  · exact hasDerivAt_sin x
   }
 
 
@@ -97,6 +100,9 @@ example (x : ℝ) :
 
 /- A function is differentiable at a point, considered only within the subset -/
 #check DifferentiableWithinAt
+
+/- like when |x| is not diff at 0, but |x| is DifferentiableWithinAt ℝ f
+[0,∞) 0 (differentiable at 0 when only looking from one side) -/
 
 /- We can also consider the derivative only within a subset. -/
 #check HasDerivWithinAt
@@ -198,7 +204,18 @@ normed vector space. -/
 
 example (x : ℝ) : deriv (fun x ↦ ((Real.cos x) ^ 2, (Real.sin x) ^ 2)) x =
     (- 2 * Real.cos x * Real.sin x, 2 * Real.sin x * Real.cos x) := by {
-  sorry
+  apply HasDerivAt.deriv
+  refine HasDerivAt.prod ?h.hf₁ ?h.hf₂
+  -- · apply HasDerivAt.pow
+  · suffices : HasDerivAt (fun x ↦ cos x ^ 2) (2 * (cos x) ^ 1 * -sin x) x
+    · simp at this
+      simp
+      exact this
+    apply HasDerivAt.pow
+    exact hasDerivAt_cos x
+  · convert HasDerivAt.pow _ _
+    simp
+    exact hasDerivAt_sin x
   }
 
 
@@ -291,6 +308,7 @@ example (a b : ℝ) : ∫ x in a..b, exp x = exp b - exp a :=
 
 /- the notation `[[a, b]]` (in namespace `Interval`) means
 `uIcc a b`, i.e. the interval from `min a b` to `max a b` -/
+#check uIcc
 example {a b : ℝ} (h : (0 : ℝ) ∉ [[a, b]]) :
     ∫ x in a..b, 1 / x = log (b / a) :=
   integral_one_div h
@@ -300,6 +318,9 @@ example (a b : ℝ) :
   simp
 
 /- We have the fundamental theorem of calculus in Lean. -/
+
+#check HasStrictDerivAt
+#check HasDerivAt
 
 /- FTC-1 -/
 example (f : ℝ → ℝ) (hf : Continuous f) (a b : ℝ) :
@@ -318,7 +339,12 @@ if we know the antiderivative. -/
 
 example (a b : ℝ) : ∫ x in a..b, exp (x + 3) =
     exp (b + 3) - exp (a + 3) := by {
-  sorry
+  rw[intervalIntegral.integral_eq_sub_of_hasDerivAt]
+  · intro x hx
+    refine HasDerivAt.comp_add_const x 3 ?hderiv.hf
+    exact Real.hasDerivAt_exp (x + 3)
+  · apply Continuous.intervalIntegrable
+    fun_prop
   }
 
 
@@ -425,7 +451,9 @@ Remark: `rw` will not rewrite inside a binder
 (like `fun x`, `∃ x`, `∫ x` or `∀ᶠ x`).
 Use `simp_rw`, `simp only` or `unfold` instead. -/
 example : ∀ᵐ x : ℝ, Irrational x := by {
-  sorry
+  unfold Irrational
+  refine Countable.ae_not_mem ?h volume
+  exact countable_range Rat.cast
   }
 
 
