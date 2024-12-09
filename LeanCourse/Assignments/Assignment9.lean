@@ -33,6 +33,7 @@ open BigOperators Function Set Real Filter Classical Topology TopologicalSpace
 
 example (x : ℝ) :
     deriv (fun x ↦ Real.exp (x ^ 2)) x = 2 * x * Real.exp (x ^ 2) := by {
+  apply HasDerivAt.deriv
   sorry
   }
 
@@ -66,7 +67,47 @@ then use `intermediate_value_uIcc`.
 Useful lemmas: `uIcc_of_le` and `mem_uIcc`. -/
 lemma mono_exercise_part1 {f : α → α} (hf : Continuous f) (h2f : Injective f) {a b x : α}
     (hab : a ≤ b) (h2ab : f a < f b) (hx : a ≤ x) : f a ≤ f x := by {
-  sorry
+      by_cases h : a = x
+      · exact le_of_eq (h2f (congrArg f (congrArg f h)))
+      · have hab2 : a ≠ b := by {
+          apply ne_of_lt at h2ab
+          exact (Function.Injective.ne_iff h2f).1 h2ab
+        }
+        apply Ne.lt_of_le hab2 at hab
+        apply Ne.lt_of_le h at hx
+        have h1 : a ∉ uIcc b x := by exact not_mem_uIcc_of_lt hab hx
+        have h2 : f a ∉ f '' uIcc b x := by {
+          unfold Injective at h2f
+          by_contra hh
+          simp at hh
+          obtain ⟨x₀, ⟨hx₀1, hx₀2⟩⟩ := hh
+          have hh2 : x₀ = a := by {
+            apply h2f at hx₀2
+            exact hx₀2
+          }
+          have hh3 : a ∈ [[b, x]] := by {
+            rw [hh2] at hx₀1
+            exact hx₀1
+          }
+          exact h1 hh3
+        }
+        have h3 : f a ∉ uIcc (f b) (f x) := by {
+          by_contra hh
+          have hh1 : [[f b, f x]] ⊆ f '' [[b, x]] := by {
+            have hhh : ContinuousOn f [[b, x]] := by exact Continuous.continuousOn hf
+            exact intermediate_value_uIcc hhh
+          }
+          apply mem_of_mem_of_subset at hh
+          apply hh at hh1
+          exact h2 hh1
+        }
+        by_contra h4
+        rw [mem_uIcc] at h3
+        simp at h3
+        have h5 : f x ≤ f a := by exact le_of_not_ge h4
+        have h6 : f b < f a := by exact h3.2 h5
+        have h7 : f b ≤ f a := by exact le_of_lt h6
+        exact LE.le.not_lt h7 h2ab
   }
 
 /- Now use this and the intermediate value theorem again
@@ -180,7 +221,47 @@ variable (α : Type*) [ConditionallyCompleteLinearOrder α]
   [TopologicalSpace α] [OrderTopology α] [DenselyOrdered α] in
 lemma mono_exercise_part1_copy {f : α → α} (hf : Continuous f) (h2f : Injective f) {a b x : α}
     (hab : a ≤ b) (h2ab : f a < f b) (hx : a ≤ x) : f a ≤ f x := by {
-  sorry
+      by_cases h : a = x
+      · exact le_of_eq (h2f (congrArg f (congrArg f h)))
+      · have hab2 : a ≠ b := by {
+          apply ne_of_lt at h2ab
+          exact (Function.Injective.ne_iff h2f).1 h2ab
+        }
+        apply Ne.lt_of_le hab2 at hab
+        apply Ne.lt_of_le h at hx
+        have h1 : a ∉ uIcc b x := by exact not_mem_uIcc_of_lt hab hx
+        have h2 : f a ∉ f '' uIcc b x := by {
+          unfold Injective at h2f
+          by_contra hh
+          simp at hh
+          obtain ⟨x₀, ⟨hx₀1, hx₀2⟩⟩ := hh
+          have hh2 : x₀ = a := by {
+            apply h2f at hx₀2
+            exact hx₀2
+          }
+          have hh3 : a ∈ [[b, x]] := by {
+            rw [hh2] at hx₀1
+            exact hx₀1
+          }
+          exact h1 hh3
+        }
+        have h3 : f a ∉ uIcc (f b) (f x) := by {
+          by_contra hh
+          have hh1 : [[f b, f x]] ⊆ f '' [[b, x]] := by {
+            have hhh : ContinuousOn f [[b, x]] := by exact Continuous.continuousOn hf
+            exact intermediate_value_uIcc hhh
+          }
+          apply mem_of_mem_of_subset at hh
+          apply hh at hh1
+          exact h2 hh1
+        }
+        by_contra h4
+        rw [mem_uIcc] at h3
+        simp at h3
+        have h5 : f x ≤ f a := by exact le_of_not_ge h4
+        have h6 : f b < f a := by exact h3.2 h5
+        have h7 : f b ≤ f a := by exact le_of_lt h6
+        exact LE.le.not_lt h7 h2ab
   }
 
 

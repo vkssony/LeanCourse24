@@ -83,7 +83,10 @@ example (x : ℝ) : DifferentiableAt ℝ sin x :=
 example (x : ℝ) :
     HasDerivAt (fun x ↦ Real.cos x + Real.sin x)
     (Real.cos x - Real.sin x) x := by {
-  sorry
+  rw [sub_eq_neg_add]
+  apply HasDerivAt.add
+  · exact?
+  · exact?
   }
 
 
@@ -198,7 +201,21 @@ normed vector space. -/
 
 example (x : ℝ) : deriv (fun x ↦ ((Real.cos x) ^ 2, (Real.sin x) ^ 2)) x =
     (- 2 * Real.cos x * Real.sin x, 2 * Real.sin x * Real.cos x) := by {
-  sorry
+  apply HasDerivAt.deriv
+  refine HasDerivAt.prod ?h.hf₁ ?h.hf₂
+  · convert HasDerivAt.pow _ _ using 1
+    rotate_right
+    exact hasDerivAt_cos x
+    ring
+  -- · suffices : HasDerivAt (fun x ↦ cos x ^ 2) (2 * (cos x) ^ 1 * -sin x) x
+  --   · simp at this
+  --     simp
+  --     exact this
+  --   apply HasDerivAt.pow
+  --   exact hasDerivAt_cos x
+  · convert HasDerivAt.pow _ _
+    simp
+    exact hasDerivAt_sin x
   }
 
 
@@ -242,6 +259,9 @@ example (f : E → F) (f' : E →L[𝕜] F) (x₀ : E) :
 example (f : E → F) (f' : E →L[𝕜] F) (x₀ : E) (hff' : HasFDerivAt f f' x₀) :
     fderiv 𝕜 f x₀ = f' :=
   hff'.fderiv
+
+  #check HasDerivAt
+  #check HasFDerivAt
 
 /- We can take the directional derivative or partial derivative
 by applying the Fréchet derivative to an argument -/
@@ -318,7 +338,13 @@ if we know the antiderivative. -/
 
 example (a b : ℝ) : ∫ x in a..b, exp (x + 3) =
     exp (b + 3) - exp (a + 3) := by {
-  sorry
+  -- simp can do this
+  rw [intervalIntegral.integral_eq_sub_of_hasDerivAt]
+  · intro x hx
+    refine HasDerivAt.comp_add_const x 3 ?hderiv.hf
+    exact Real.hasDerivAt_exp (x + 3)
+  · apply Continuous.intervalIntegrable
+    fun_prop
   }
 
 
@@ -326,6 +352,7 @@ example (a b : ℝ) : ∫ x in a..b, exp (x + 3) =
 
 /- The measure of a set lives in the
 extended non-negative reals `[0, ∞]`. -/
+#check ENNReal
 #check ℝ≥0∞
 example : ℝ≥0∞ = WithTop {x : ℝ // 0 ≤ x} := rfl
 example : (∞ + 5) = ∞ := by simp
@@ -425,7 +452,9 @@ Remark: `rw` will not rewrite inside a binder
 (like `fun x`, `∃ x`, `∫ x` or `∀ᶠ x`).
 Use `simp_rw`, `simp only` or `unfold` instead. -/
 example : ∀ᵐ x : ℝ, Irrational x := by {
-  sorry
+  unfold Irrational
+  refine Countable.ae_not_mem ?h volume
+  exact countable_range Rat.cast
   }
 
 
