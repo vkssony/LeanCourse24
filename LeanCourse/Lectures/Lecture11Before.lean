@@ -41,6 +41,9 @@ example (a b : ℕ) : (a + b) + a ≤ 2 * (a + b) := by
   have h : c = a + b := sorry -- not provable
   sorry
 
+-- have forgets proof content -don't use for data
+-- use let, or set (which replaces newly defined thing)
+
 example (a b : ℕ) : (a + b) + a ≤ 2 * (a + b) := by
   have hR : Mul ℝ := by infer_instance
   -- the line above states that we have a multiplication
@@ -92,7 +95,7 @@ def myFun (n : ℕ) : ℕ :=
 example : ∃ (f : ℕ → ℕ), ∀ n, f (n + 1) > 2 ^ f n := by
   use myFun
   intro n
-  simp
+  simp only [myFun, gt_iff_lt, lt_add_iff_pos_right, zero_lt_one]
 
 /- If you want to refer to an "inaccessible name",
 i.e. a name with a dagger (†),
