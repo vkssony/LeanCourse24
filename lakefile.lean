@@ -22,3 +22,5 @@ require «doc-gen4» from git
 @[default_target]
 lean_lib «LeanCourse» where
   -- add any library configuration options here
+
+lean_lib «Construction»
