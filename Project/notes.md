@@ -11,5 +11,9 @@ Main claims:
       3. $|Gal(L/\Q)|=[L:\Q]$
       4. $G$ group, $|G|=p^n$ implies $G$ solvable
       5. $G$ solvable, $|G|=2^n$ implies composition series of $G$ all index 2
+      6.  IsCyclotomicExtension.isGalois
+      7.  IsCyclotomicExtension.splitting_field_cyclotomic
+      8.  Polynomial.degree_cyclotomic
+      9.
 3. $[\Q(\zeta_n):\Q]=\varphi(n)
 4.
