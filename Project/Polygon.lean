@@ -9,6 +9,7 @@ import Mathlib.Logic.Equiv.Set
 import Mathlib.Algebra.IsPrimePow
 import Mathlib.Data.Nat.Factorization.PrimePow
 import Mathlib.NumberTheory.Padics.PadicVal.Basic
+import Mathlib.Algebra.Polynomial.Roots
 open IntermediateField Construction MulOpposite
 
 
@@ -39,11 +40,11 @@ open scoped Pointwise
 
 
 
-theorem index_map_of_injective  {G : Type u_1} {G' : Type u_2} [Group G] [Group G'] (H : Subgroup G){f : G →* G'} (hf : Function.Injective f) :
+theorem index_map_of_injective  {G : Type*} {G' : Type*} [Group G] [Group G'] (H : Subgroup G){f : G →* G'} (hf : Function.Injective f) :
     (H.map f).index = H.index * f.range.index := by
   rw [H.index_map, f.ker_eq_bot_iff.mpr hf, sup_bot_eq]
 
-theorem index_map_subtype  {G : Type u_1} [Group G] {H : Subgroup G}  (K : Subgroup H) :
+theorem index_map_subtype  {G : Type*} [Group G] {H : Subgroup G}  (K : Subgroup H) :
     (K.map H.subtype).index = K.index * H.index := by
   rw [index_map_of_injective K H.subtype_injective, H.subtype_range]
 
@@ -145,14 +146,13 @@ theorem index_map_subtype  {G : Type u_1} [Group G] {H : Subgroup G}  (K : Subgr
         exact Subgroup.normalCore_normal H
     }
 
-
 lemma ord_pow_two_tower' {G : Type*} [Group G] [Finite G] (n : ℕ) (h: Nat.card G = 2^n) :
-  ∃ T : ℕ → Subgroup G, T 0 = ⊤ ∧ T n = ⊥ ∧ ∀ i < n, ((T (i+1) ≤  T i) ∧ ((T (i+1)).relindex (T i)=2) ∧ ((T (i+1)).subgroupOf (T (i))).Normal ) := by {
+  ∃ T : ℕ → Subgroup G, T 0 = ⊤ ∧ T n = ⊥ ∧ (∀ i : ℕ, (T (i+1) ≤  T i)) ∧ ∀ i < n, ((T (i+1)).relindex (T i)=2) ∧ ((T (i+1)).subgroupOf (T (i))).Normal  := by {
     induction n generalizing G with
     | zero =>
       simp only [pow_zero, not_lt_zero', false_implies, implies_true, and_true] at *
       use fun a ↦ ⊥
-      simp only [and_true]
+      simp
       obtain card_1 := @Subgroup.card_top G _
       rw[h] at card_1
       symm
@@ -164,10 +164,19 @@ lemma ord_pow_two_tower' {G : Type*} [Group G] [Finite G] (n : ℕ) (h: Nat.card
       obtain ⟨T, hT0, hTnp1, hTi⟩ := ih hK
       let S : ℕ → Subgroup G := fun m ↦ if m = 0 then ⊤ else Subgroup.map K.subtype (T (m-1))
       use S
-      refine ⟨?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_⟩
       · tauto
       · unfold S
         simp[hTnp1]
+      · intro i
+        by_cases hi0 : i = 0
+        · subst i
+          simp[S]
+        · simp[S, hi0]
+          obtain ⟨T_sub, ignore⟩ := hTi
+          obtain wts := T_sub (i - 1)
+          simp[Nat.sub_one_add_one hi0] at wts
+          tauto
       · intro i hi
         have hKind2 : K.index = (2 ^ (n+1))/2 ^ n  := by
           obtain lagrange := Subgroup.index_mul_card K
@@ -188,8 +197,9 @@ lemma ord_pow_two_tower' {G : Type*} [Group G] [Finite G] (n : ℕ) (h: Nat.card
             · exact h
             · exact Subgroup.normal_of_characteristic ⊥
           · have h0ltn: 0 < n := by exact Nat.zero_lt_of_ne_zero hn0
-            obtain ⟨hT01sg, hT01ind, hT01norm⟩:= (hTi 0) h0ltn
-            simp[hT0] at hT01sg hT01ind hT01norm ⊢
+            obtain ⟨ignore, hTi⟩ := hTi
+            obtain ⟨hT01ind, hT01norm⟩:= (hTi 0) h0ltn
+            simp[hT0] at hT01ind hT01norm ⊢
             have hKmapG : (Subgroup.map K.subtype ⊤) = K := by
               aesop
             rw[hKmapG]
@@ -204,8 +214,11 @@ lemma ord_pow_two_tower' {G : Type*} [Group G] [Finite G] (n : ℕ) (h: Nat.card
             refine Nat.sub_one_lt_of_le ?h₀ ?h₁
             exact Nat.zero_lt_of_ne_zero hi0
             exact Nat.le_of_lt_succ hi
-          obtain ⟨hTa,hTb,hTc⟩ := hTi (i-1) himin_lt_n
-          rw[Nat.sub_one_add_one_eq_of_pos (Nat.zero_lt_of_ne_zero hi0)] at hTa hTb hTc
+          obtain ⟨T_sub, hTi⟩ := hTi
+          obtain hTa := T_sub (i-1)
+          rw[Nat.sub_one_add_one hi0] at hTa
+          obtain ⟨hTb,hTc⟩ := hTi (i-1) himin_lt_n
+          rw[Nat.sub_one_add_one_eq_of_pos (Nat.zero_lt_of_ne_zero hi0)] at hTb hTc
           have hi_i1_index_2 := by
             obtain hend := Subgroup.relindex_mul_index ((@Subgroup.map_mono _ _ _ _ K.subtype) hTa)
             simp[index_map_subtype, hKind2] at hend
@@ -217,36 +230,46 @@ lemma ord_pow_two_tower' {G : Type*} [Group G] [Finite G] (n : ℕ) (h: Nat.card
             rw[mul_eq_mul_left_iff ] at hend
             simp[hindexneq0] at hend
             exact hend
-          refine ⟨?_,?_,?_⟩
-          · exact hTa
+          refine ⟨?_,?_⟩
           · exact hi_i1_index_2
           · rw[if_neg]
             -- apply index_two_normal
             -- apply hi_i1_index_2
             -- exact hi0
             apply smallest_prime_index
-            have two_smallest_prime_dvd: (Nat.card ↥(Subgroup.map K.subtype (T (i - 1)))).minFac = 2 := by
-              have thingy : Nat.card ↥(Subgroup.map K.subtype (T (i - 1))) = Nat.card ↥(T (i-1)) := by
+            have two_smallest_prime_dvd: (Nat.card ↥(Subgroup.map K.subtype (T (i - 1)))).minFac = 2 := by{
+              have thingy : Nat.card ↥(Subgroup.map K.subtype (T (i - 1))) = Nat.card ↥(T (i-1)) := by{
                 apply Nat.card_image_of_injective (Subgroup.subtype_injective K)
+              }
               rw[thingy]
               obtain sub_two_gp := IsPGroup.to_subgroup (IsPGroup.of_card hK) (T (i-1))
-              have non_triv : Nontrivial ↥(T (i-1)) := by
+              have non_triv : Nontrivial ↥(T (i-1)) := by{
                 refine Finite.one_lt_card_iff_nontrivial.mp ?_
-                have this2: ((⊥ : Subgroup ↥K).relindex (T (i-1))) ≠ 0 := by
+                have this2: ((⊥ : Subgroup ↥K).relindex (T (i-1))) ≠ 0 := by{
                   simp
                   refine Nat.card_ne_zero.mpr ?_
                   constructor
                   · exact One.instNonempty
                   · exact Subgroup.instFiniteSubtypeMem (T (i - 1))
+                }
                 obtain thingy2 := Subgroup.relindex_le_of_le_left (OrderBot.bot_le (T i)) this2
                 simp[hTb] at thingy2
                 linarith
+              }
+              rw[IsPGroup.nontrivial_iff_card sub_two_gp] at non_triv
+              obtain ⟨n,hn0,hncard⟩ := non_triv
+              rw[hncard]
+              apply Nat.Prime.pow_minFac Nat.prime_two
+              linarith
+            }
+
             rw[two_smallest_prime_dvd]
             apply hi_i1_index_2
             exact hi0
 
+
 }
-#check Subgroup.relindex_mul_index
+
 
 
 section degree_two
@@ -263,13 +286,31 @@ end degree_two
 
 
 
+lemma fixedField_bot {k : Type u_1} {K : Type u_2} [Field k] [Field K] [Algebra k K] [IsGalois k K] :
+      IntermediateField.fixedField (⊤ : Subgroup (K ≃ₐ[k] K)) = ⊥ := by sorry
+lemma fixedField_top {k : Type u_1} {K : Type u_2} [Field k] [Field K] [Algebra k K] [IsGalois k K] :
+      IntermediateField.fixedField (⊥ : Subgroup (K ≃ₐ[k] K)) = ⊤ := by sorry
+
+
 lemma algebraic_constructable_iff (M : Set ℂ) (z : ℂ) (h₀: 0 ∈ M) (h₁:1 ∈ M)
   (L :IntermediateField (K_zero M) ℂ) (h₃ : IsAlgebraic (K_zero M) z)
   (h₄ : Polynomial.IsSplittingField (K_zero M) L (minpoly (K_zero M) z)):
   z ∈ M_inf M ↔ ∃ (n : ℕ), ((2 : ℕ) ^ n) = Module.finrank (K_zero M) L := by {
+    let minz := minpoly (K_zero M) z
     constructor
-    · sorry
+    · intro hz
+      obtain ⟨n, F, h1, h2, h3, h4⟩ := (Classfication_z_in_M_inf M z h₀ h₁).mp hz
+      -- have thing :(((minpoly (K_zero M) z)).rootSet L)  ⊆ M_inf M
+      -- have thing2 : adjoin (K_zero M) (minz.rootSet ℂ) ≤ @Subfield.toIntermediateField (K_zero M) ℂ _ _ _ (MField M h₀ h₁) (K_zero_in_MField M h₀ h₁)  := by
+      --   rw[IntermediateField.adjoin_le_iff]
+      sorry
+
     · intro h
+      have z_in_L : z ∈ L := by
+        apply IsIntegral.mem_intermediateField_of_minpoly_splits
+        · rw[← isAlgebraic_iff_isIntegral]
+          exact h₃
+        · exact h₄.1
       have h_sep: (minpoly (K_zero M) z ).Separable := by
         apply Irreducible.separable
         apply minpoly.irreducible
@@ -286,18 +327,56 @@ lemma algebraic_constructable_iff (M : Set ℂ) (z : ℂ) (h₀: 0 ∈ M) (h₁:
         rw[hn,Nat.card_eq_fintype_card]
         apply IsGalois.card_aut_eq_finrank
       set Gal := L ≃ₐ[K_zero M] L
-      obtain⟨tow_f, ⟨tow_bot,tow_top,sub⟩⟩ := @ord_pow_two_tower' Gal _ _ n L_galdeg
+      obtain⟨tow_f, ⟨tow_bot,tow_top,⟨sub,relind⟩⟩⟩ := @ord_pow_two_tower' Gal _ _ n L_galdeg
       rw[Classfication_z_in_M_inf _ _ h₀ h₁]
       let f_L := fun m ↦IntermediateField.restrictScalars ℚ (IntermediateField.lift (IntermediateField.fixedField (tow_f m)))
-      have f_L_tower : ∀ (i : ℕ), f_L i ≤ f_L (i+1) := by
+      have f_L_tower : ∀ (i : ℕ), f_L i ≤ f_L (i+1) := by {
+        intro i
+        specialize sub i
+        simp[f_L]
+        have base_gal: fixedField (tow_f i) ≤ fixedField (tow_f (i+1)) := by
+          rw[IntermediateField.le_iff_le, IntermediateField.fixingSubgroup_fixedField]
+          exact sub
+        have wts: lift (fixedField (tow_f i)) ≤ lift (fixedField (tow_f (i+1))) := by
+          apply IntermediateField.map_mono L.val
+          exact base_gal
+        exact fun x a ↦ wts ((@IntermediateField.mem_restrictScalars ℚ ℂ (K_zero M) _ _ _ _ _ _ _ (lift (fixedField (tow_f i)))).mp a)
+      }
+      have f_L_n : z ∈ f_L n := by
+        simp[f_L, tow_top]
+        rw[(@IntermediateField.mem_lift (K_zero M) ℂ _ _ _ L (fixedField ⊥) ⟨z, z_in_L⟩ ),fixedField_top]
+        simp
+      have f_L_0 : K_zero M = f_L 0 := by
+        simp[f_L,tow_bot]
+        rw[fixedField_bot]
+        simp
+      have f_L_rank : ∀ i < n, (f_L i).relfinrank (f_L (i + 1)) = 2 := by
+        intro i hin
+        unfold relfinrank
+        specialize relind i hin
         sorry
-      use n, f_L, f_L_tower
-      refine ⟨?_,?_,?_⟩
-      · simp[f_L,tow_top]
-        sorry
-      · simp[f_L,tow_bot]
-        sorry
-      · intro i hin
+      use n, f_L
+
+}
 
 
-  }
+
+
+      -- use n, f_L, f_L_tower
+      -- refine ⟨?_,?_,?_⟩
+      -- · simp[f_L,tow_top]
+      --   sorry
+      -- · simp[f_L,tow_bot]
+      --   sorry
+      -- · intro i hin
+      --   sorry
+
+
+
+
+
+  #check IsGalois.intermediateFieldEquivSubgroup
+  #check IntermediateField.extendScalars.orderIso
+  #check WithTop.coe_le_coe
+  #check IntermediateField.mem_lift
+  #check IsGalois.card_fixingSubgroup_eq_finrank
