@@ -1,18 +1,47 @@
 import LeanCourse.Common
 import Mathlib.Data.Complex.Exponential
 
-theorem Nat.pow_of_pow_add_prime {a n : ℕ} (ha : 1 < a) (hn : n ≠ 0) (hP : Nat.Prime (a ^ n + 1)) : ∃ (m : ℕ), n = 2 ^ m := by sorry
 
+/-
+# Section - Sorrys
+
+In this section I list the lemmas that were not completed, and give my reasons for not completeing them
+-/
+
+
+--   This theorem exists in matlib, but in a later version than the one we are working with, so I have included it up here
+theorem Nat.pow_of_pow_add_prime {a n : ℕ} (ha : 1 < a) (hn : n ≠ 0) (hP : Nat.Prime (a ^ n + 1)) : ∃ (m : ℕ), n = 2 ^ m := by {
+  sorry
+}
+
+--   The following two lemmas are basic facts that I expected to already be in matlab, but I did not manage to find them, and I have now
+--   ran out to time
+
+lemma product_of_prime_factors (n : ℕ) : n ≠ 0 → n = ∏ p ∈ n.primeFactors, p ^ (n.factorization p) := by {
+  sorry
+}
+
+lemma pow_log (a b : ℕ) : 1 < a → 0 < b → a ^ Nat.log a b = b := by {
+  sorry
+}
+
+--   This lemma exists for multiplying two coprime numbers (Nat.totient_mul). Extending this over a finite set
+--   should be not too difficult, but I unfortunatley ran out of time for this aswell.
+lemma totient_prod (A : Finset ℕ) : (∀ x ∈ A, ∀ y ∈ A, x ≠ y → x.Coprime y) → (∏ p ∈ A, p).totient = ∏ p ∈ A, (p).totient := by {
+  sorry
+}
+
+/-# Section 2 - Fermat Primes
+  In this section I define Fermat Primes, and another number I called a product of distinct Fermat Primes.
+  These numbers describe exactly what we want our final numbers to look like-/
 def FermatPrime (n : ℕ) : Prop :=
   Nat.Prime n ∧ (∃ k : ℕ, n = 2 ^ (2 ^ k) + 1)
 
 def ProductOfDistinctFermatPrimes (n : ℕ) : Prop :=
-  ∀ p ∈ n.primeFactors, (FermatPrime p ∧ ¬ (p ^ 2 ∣ n))
-  -- ∃ k : ℕ, ∃ j : ℕ → ℕ, (n = ∏ i ∈ Finset.range k, j i) ∧ (∀ i ∈ Finset.range k, FermatPrime (j i)) ∧ (∀ p q : Finset.range k, p ≠ q → j p ≠ j q)
-
-def ProductOfDistinctFermatPrimes' (n : ℕ) : Prop :=
   (n ≠ 0) ∧ ∀ p ∈ n.primeFactors, FermatPrime p ∧ n.factorization p = 1
 
+/-# Section 3 - Necessary Lemmas
+  The following lemmas were made just to use in the big proof at the end-/
 
 lemma nat_sub_one (n : ℕ) : (n ≠ 0 ∧ n ≠ 1) → n - 1 ≠ 0 := by {
   intro h
@@ -30,14 +59,11 @@ lemma hpowertwo (m : ℕ): 2 ^ m = 1 → m = 0 := by {
 
 lemma nat_sub_plus_one (n : ℕ) : (¬ n = 0) → n = n - 1 + 1 := by exact fun a => Eq.symm (Nat.succ_pred_eq_of_ne_zero a)
 
-lemma product_of_prime_factors (n : ℕ) : n ≠ 0 → n = ∏ p ∈ n.primeFactors, p ^ (n.factorization p) := by {
-  intro hn
-  sorry
-}
 
-lemma totient_of_fermat_prime (p : ℕ) : (ProductOfDistinctFermatPrimes' p) → p.totient = 2 ^ (∑ p_1 ∈ p.primeFactors, (p_1 - 1).log2) := by {
+
+lemma totient_of_fermat_prime (p : ℕ) : (ProductOfDistinctFermatPrimes p) → p.totient = 2 ^ (∑ p_1 ∈ p.primeFactors, Nat.log 2 (p_1 - 1)) := by {
   intro hp
-  unfold ProductOfDistinctFermatPrimes' at hp
+  unfold ProductOfDistinctFermatPrimes at hp
   rw [product_of_prime_factors p hp.1]
   have hp1 : ∏ p_1 ∈ p.primeFactors, p_1 ^ p.factorization p_1 = ∏ p_1 ∈ p.primeFactors, p_1 := by {
     apply Finset.prod_congr
@@ -47,18 +73,71 @@ lemma totient_of_fermat_prime (p : ℕ) : (ProductOfDistinctFermatPrimes' p) →
       simp
   }
   rw [hp1]
-  -- have htotient (A : Finset ℕ) : (∀ x ∈ A, ∀ y ∈ A, x ≠ y → x.Coprime y) → (∏ p ∈ A, p).totient = ∏ p ∈ A, (p).totient := by {
-  --   -- intro hcoprime
-  --   -- exact Nat.totient_eq_prod_coprime hcoprime
-  -- }
-  sorry
+
+  have hcoprime : (∀ x ∈ p.primeFactors, ∀ y ∈ p.primeFactors, x ≠ y → x.Coprime y) := by {
+    intro x hx y hy hxy
+    rw [Nat.coprime_primes]
+    exact hxy
+    exact Nat.prime_of_mem_primeFactors hx
+    exact Nat.prime_of_mem_primeFactors hy
+  }
+  rw [totient_prod p.primeFactors hcoprime]
+
+  have htotient2 : ∏ p ∈ p.primeFactors, p.totient = ∏ p ∈ p.primeFactors, (p - 1) := by {
+    apply Finset.prod_congr
+    · exact rfl
+    · intro p_1 hp_1
+      exact Nat.totient_prime (Nat.prime_of_mem_primeFactors hp_1)
+  }
+  have hpower : ∀ p_1 ∈ p.primeFactors, p_1 - 1 = 2 ^ Nat.log 2 (p_1 - 1) := by {
+    intro p_1 hp_1
+    have hb : 1 < 2 := by linarith
+
+    have hb2 : p_1 - 1 > 0 := by {
+      by_contra hb2
+      simp at hb2
+      rw [Nat.le_one_iff_eq_zero_or_eq_one] at hb2
+      have htemp : p_1 ≠ 0 ∧ p_1 ≠ 1 := by {
+        constructor
+        · exact Nat.Prime.ne_zero (Nat.prime_of_mem_primeFactors hp_1)
+        · exact Nat.Prime.ne_one (Nat.prime_of_mem_primeFactors hp_1)
+      }
+      tauto
+    }
+    exact Eq.symm (pow_log 2 (p_1 - 1) hb hb2)
+  }
+  have hpower2 : ∀ p_1 ∈ p.primeFactors, p_1.totient = 2 ^ Nat.log 2 (p_1 - 1) := by {
+    intro p_1 hp_1
+    rw [Nat.totient_prime (Nat.prime_of_mem_primeFactors hp_1)]
+    exact hpower p_1 hp_1
+  }
+  have hpower3 : ∏ p_1 ∈ p.primeFactors, p_1.totient = ∏ p_1 ∈ p.primeFactors, 2 ^ Nat.log 2 (p_1 - 1) := by {
+    apply Finset.prod_congr
+    · exact rfl
+    · exact hpower2
+  }
+  rw [hpower3]
+  rw [Finset.prod_pow_eq_pow_sum]
+  have hprimefactors : (∏ p_1 ∈ p.primeFactors, p_1).primeFactors = p.primeFactors := by {
+    have hprime : ∀ p_1 ∈ p.primeFactors, Nat.Prime p_1 := by exact fun p_1 a ↦ Nat.prime_of_mem_primeFactors a
+    apply Nat.primeFactors_prod at hprime
+    exact hprime
+  }
+  exact
+    congrArg (HPow.hPow 2)
+      (congrFun (congrArg Finset.sum (id (Eq.symm hprimefactors))) fun i ↦ Nat.log 2 (i - 1))
+
+
 }
 
+/-# Section 4 - Main Result-/
 
-
-lemma phi_pow_two_iff {n : ℕ} : (∃ m : ℕ, Nat.totient n = 2 ^ m) ↔ (∃ s p : ℕ, n = 2^s * p ∧ ProductOfDistinctFermatPrimes' p) := by {
+lemma phi_pow_two_iff {n : ℕ} : (∃ m : ℕ, Nat.totient n = 2 ^ m) ↔ (∃ s p : ℕ, n = 2^s * p ∧ ProductOfDistinctFermatPrimes p) := by {
   constructor
-  · intro h
+  · -- First Direction of if and only if
+    -- The plan for this direction is to obtain n = 2 ^ s * p
+    -- And then to show that the s and p satisfy the requirements in the lemma
+    intro h
     obtain ⟨m, hm⟩ := h
     have hn0 : n ≠ 0 := by {
       intro h
@@ -70,8 +149,8 @@ lemma phi_pow_two_iff {n : ℕ} : (∃ m : ℕ, Nat.totient n = 2 ^ m) ↔ (∃ 
     by_cases h1 : m = 0
     . simp [h1] at hm
       have h2 : n = 1 ∨ n = 2 := by exact Nat.totient_eq_one_iff.mp hm
-      have hfermat : ProductOfDistinctFermatPrimes' 1 := by {
-          unfold ProductOfDistinctFermatPrimes'
+      have hfermat : ProductOfDistinctFermatPrimes 1 := by {
+          unfold ProductOfDistinctFermatPrimes
           simp
         }
       obtain h3|h4 := h2
@@ -164,30 +243,6 @@ lemma phi_pow_two_iff {n : ℕ} : (∃ m : ℕ, Nat.totient n = 2 ^ m) ↔ (∃ 
           rw [←hprimefactors]
           exact hfact
         }
-        -- have hprimefactors2 : (p₀ ^ (n.factorization p₀ - 1) * (p₀ - 1)).primeFactors = {2} := by {
-        --   have hnonempty : ((p₀ ^ (n.factorization p₀ - 1) * (p₀ - 1)).primeFactors).Nonempty := by {
-        --     have hnonempty1 : (p₀ ^ (n.factorization p₀ - 1) * (p₀ - 1)).primeFactors ≠ ∅ := by {
-        --       by_contra hx
-        --       rw [Nat.primeFactors_eq_empty] at hx
-        --       obtain hx1|hx2 := hx
-        --       · exact hnonzero2 hx1
-        --       · have hhhh : p₀ - 1 = 1 := by exact Nat.eq_one_of_mul_eq_one_left hx2
-        --         have hhhh2 : p₀ = 2 := by exact Nat.pred_eq_succ_iff.mp hhhh
-        --         -- rw [hhhh2] at hx2
-        --         -- simp at hx2
-
-
-        --     }
-        --     exact Finset.nonempty_iff_ne_empty.mpr hnonempty1
-
-
-        --   }
-        --   have hcard1 : ((p₀ ^ (n.factorization p₀ - 1) * (p₀ - 1)).primeFactors).card ≥ 1 := by exact Finset.one_le_card.mpr hnonempty
-        --   have hsubset : (p₀ ^ (n.factorization p₀ - 1) * (p₀ - 1)).primeFactors ⊆ {2} := by exact hprimefactors3
-        --   have hcard2 : ({2} : Finset ℕ).card = 1 := by exact rfl
-        --   have hcard3 : ({2} : Finset ℕ).card ≤ ((p₀ ^ (n.factorization p₀ - 1) * (p₀ - 1)).primeFactors).card := by exact hcard1
-        --   exact Eq.symm (Finset.eq_of_superset_of_card_ge hprimefactors3 hcard1)
-        -- }
         have hprimefactors2 : (p₀ ^ (n.factorization p₀ - 1) * (p₀ - 1)).primeFactors = {2} ∨ (p₀ ^ (n.factorization p₀ - 1) * (p₀ - 1)).primeFactors = ∅ := by {
           have htemp : ¬ (p₀ ^ (n.factorization p₀ - 1) * (p₀ - 1)).primeFactors = ∅ → (p₀ ^ (n.factorization p₀ - 1) * (p₀ - 1)).primeFactors = {2} := by {
             intro htemp
@@ -229,7 +284,7 @@ lemma phi_pow_two_iff {n : ℕ} : (∃ m : ℕ, Nat.totient n = 2 ^ m) ↔ (∃ 
 
       }
 
-      unfold ProductOfDistinctFermatPrimes'
+      unfold ProductOfDistinctFermatPrimes
 
       have hp2 : ∃ s : ℕ, n.factorization 2 = s := by {
         simp
@@ -428,10 +483,12 @@ lemma phi_pow_two_iff {n : ℕ} : (∃ m : ℕ, Nat.totient n = 2 ^ m) ↔ (∃ 
       exact hn0
 
 
-  · intro hn
+  · -- Second direction of if and only if
+    -- This direction is easier, as we have a formula to compute what n.totient is
+    intro hn
     obtain ⟨s, p, hn⟩ := hn
     obtain ⟨hn1, hn2⟩ := hn
-    unfold ProductOfDistinctFermatPrimes' at hn2
+    unfold ProductOfDistinctFermatPrimes at hn2
 
     have hp : ∀ p_1 ∈ p.primeFactors, ∃ k, p_1 = 2 ^ (2 ^ k) + 1 := by {
       have hn2 : ∀ p_1 ∈ p.primeFactors, FermatPrime p_1 ∧ p.factorization p_1 = 1 := by exact hn2.2
@@ -462,12 +519,12 @@ lemma phi_pow_two_iff {n : ℕ} : (∃ m : ℕ, Nat.totient n = 2 ^ m) ↔ (∃ 
              _ = p := by simp
       }
 
-      use ∑ p_1 ∈ p.primeFactors, Nat.log2 (p_1 -1)
+      use ∑ p_1 ∈ p.primeFactors, Nat.log 2 (p_1 -1)
       rw [hnp]
       exact totient_of_fermat_prime p hn2
 
 
-    · use (s - 1) + ∑ p_1 ∈ p.primeFactors, Nat.log2 (p_1 -1)
+    · use (s - 1) + ∑ p_1 ∈ p.primeFactors, Nat.log 2 (p_1 -1)
 
       have hpfactors : 2 ∉ p.primeFactors := by {
         by_contra h2
@@ -509,7 +566,7 @@ lemma phi_pow_two_iff {n : ℕ} : (∃ m : ℕ, Nat.totient n = 2 ^ m) ↔ (∃ 
                           _ = 2 ^ (s - 1) := by simp
       }
 
-      have htotient3 : p.totient = 2 ^ (∑ p_1 ∈ p.primeFactors, (p_1 - 1).log2) := by {
+      have htotient3 : p.totient = 2 ^ (∑ p_1 ∈ p.primeFactors, Nat.log 2 (p_1 - 1)) := by {
         exact totient_of_fermat_prime p hn2
       }
 
