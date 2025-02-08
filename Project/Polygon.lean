@@ -10,6 +10,7 @@ import Mathlib.Algebra.IsPrimePow
 import Mathlib.Data.Nat.Factorization.PrimePow
 import Mathlib.NumberTheory.Padics.PadicVal.Basic
 import Mathlib.Algebra.Polynomial.Roots
+import Mathlib.FieldTheory.PolynomialGaloisGroup
 open IntermediateField Construction MulOpposite
 
 
@@ -286,9 +287,9 @@ end degree_two
 
 
 
-lemma fixedField_bot {k : Type u_1} {K : Type u_2} [Field k] [Field K] [Algebra k K] [IsGalois k K] :
+lemma fixedField_bot {k : Type*} {K : Type*} [Field k] [Field K] [Algebra k K] [IsGalois k K] :
       IntermediateField.fixedField (⊤ : Subgroup (K ≃ₐ[k] K)) = ⊥ := by sorry
-lemma fixedField_top {k : Type u_1} {K : Type u_2} [Field k] [Field K] [Algebra k K] [IsGalois k K] :
+lemma fixedField_top {k : Type*} {K : Type*} [Field k] [Field K] [Algebra k K] [IsGalois k K] :
       IntermediateField.fixedField (⊥ : Subgroup (K ≃ₐ[k] K)) = ⊤ := by sorry
 
 
@@ -297,14 +298,22 @@ lemma algebraic_constructable_iff (M : Set ℂ) (z : ℂ) (h₀: 0 ∈ M) (h₁:
   (h₄ : Polynomial.IsSplittingField (K_zero M) L (minpoly (K_zero M) z)):
   z ∈ M_inf M ↔ ∃ (n : ℕ), ((2 : ℕ) ^ n) = Module.finrank (K_zero M) L := by {
     let minz := minpoly (K_zero M) z
+    have irr_minz : Irreducible minz := by
+      apply minpoly.irreducible
+      apply IsAlgebraic.isIntegral h₃
     constructor
     · intro hz
       obtain ⟨n, F, h1, h2, h3, h4⟩ := (Classfication_z_in_M_inf M z h₀ h₁).mp hz
-      -- have thing :(((minpoly (K_zero M) z)).rootSet L)  ⊆ M_inf M
-      -- have thing2 : adjoin (K_zero M) (minz.rootSet ℂ) ≤ @Subfield.toIntermediateField (K_zero M) ℂ _ _ _ (MField M h₀ h₁) (K_zero_in_MField M h₀ h₁)  := by
-      --   rw[IntermediateField.adjoin_le_iff]
-      sorry
+      have root_const :(((minpoly (K_zero M) z)).rootSet ℂ)  ⊆ M_inf M := by{
+        intro r hr
+        have minz_fact : Fact ((Polynomial.Splits (algebraMap ↥(K_zero M) ℂ) minz) ):= by
+          rw[fact_iff]
+          apply Polynomial.splits_of_isScalarTower ℂ (Polynomial.IsSplittingField.splits L minz)
 
+        obtain trans_act := Polynomial.Gal.galAction_isPretransitive minz ℂ irr_minz
+        sorry
+      }
+      sorry
     · intro h
       have z_in_L : z ∈ L := by
         apply IsIntegral.mem_intermediateField_of_minpoly_splits
