@@ -340,25 +340,31 @@ lemma algebraic_constructable_iff (M : Set ℂ) (z : ℂ) (h₀: 0 ∈ M) (h₁:
     constructor
     · intro hz
       obtain ⟨n, F, h1, h2, h3, h4⟩ := (Classfication_z_in_M_inf M z h₀ h₁).mp hz
-      have wts: L ≤ extendScalars (K_zero_in_MField M h₀ h₁) := by{
+      have type_thing : ∀ (y: ℂ), y ∈ @Subfield.toIntermediateField ℚ ℂ _ _ _ (MField M h₀ h₁) (fun x ↦ SubfieldClass.ratCast_mem (MField M h₀ h₁) x) ↔  y ∈ M_inf M := by{
+        intro y
+        constructor
+        · exact fun a ↦ a
+        · intro hy
+          exact hy
+      }
+      /- the idea of this long have statement is to prove L is contained in the constructible numbers. We do this
+      by proving all roots of the minimal polynomial of z are constructible, which is done by applying a
+      field automorphism to the tower of quadratic extensions obtained from z being constructible-/
+      have L_in_M_inf: L ≤ extendScalars (K_zero_in_MField M h₀ h₁) := by{
         rw[← (IntermediateField.lift_top (K_zero M) L)]
         obtain L_adj := (isSplittingField_iff_intermediateField.mp h₄).2
         rw[← L_adj, IntermediateField.lift_adjoin, IntermediateField.adjoin_le_iff]
         intro r hr
         simp
-        have type_thing : ∀ (y: ℂ), y ∈ @Subfield.toIntermediateField ℚ ℂ _ _ _ (MField M h₀ h₁) (fun x ↦ SubfieldClass.ratCast_mem (MField M h₀ h₁) x) ↔  y ∈ M_inf M := by{
-          intro y
-          constructor
-          · exact fun a ↦ a
-          · intro hy
-            exact hy
-        }
+
         rw[type_thing r]
         have k_zero_fn : (K_zero M) ≤ (F n) := by
           obtain fmono := monotone_nat_of_le_succ h1
           rw[h3]
           aesop
         let NC := @normalClosure (K_zero M) (extendScalars k_zero_fn) ℂ _ _ _ _ _
+        /- the constructed normalClosure in Mathlib isn't automatically actually a normal closure
+        ran out of time to prove-/
         have NC_nc : IsNormalClosure (K_zero M) (extendScalars k_zero_fn) NC := by sorry
         have NC_normal : Normal (K_zero M) NC := by
           apply @IsNormalClosure.normal (K_zero M) (extendScalars k_zero_fn) NC _ _ _ _ _
@@ -374,14 +380,20 @@ lemma algebraic_constructable_iff (M : Set ℂ) (z : ℂ) (h₀: 0 ∈ M) (h₁:
         have r_root : r ∈ minz.rootSet ℂ := by
           rw[Polynomial.mem_rootSet_of_ne]
           · simp[minz]
+            /- ran out of time to figure out how to have `hr` imply this statement. Annoying use of subtypes and
+            needing to lift fields-/
             sorry
           · apply minpoly.ne_zero (IsAlgebraic.isIntegral h₃)
         obtain ⟨σ, hσ⟩ := σ ⟨z, z_root⟩ ⟨r,r_root⟩
-        have fact_split: Fact ( (Polynomial.Splits (algebraMap ↥(K_zero M) ↥NC) minz)) := by sorry
+        have fact_split: Fact ( (Polynomial.Splits (algebraMap ↥(K_zero M) ↥NC) minz)) := by sorry --ran out of time
+        /- polynomial Galois action is defined as an automorphism of its splitting field, but the quadratic
+        extensions from z are only contained in the normal closure NC-/
         obtain gal_surj := @Polynomial.Gal.restrict_surjective (K_zero M) _ minz NC _ _ fact_split NC_normal
         obtain ⟨l_σ, hl_σ⟩ := gal_surj σ
         rw[Classfication_z_in_M_inf M r h₀ h₁]
         use n
+        /- these next statments were just tedious parts proving various restrictions and lifts are possible
+        to get the correct intermediate field type-/
         have k_zero_fi : ∀ (i:ℕ), (K_zero M) ≤ (F i) := by
           obtain fmono := monotone_nat_of_le_succ h1
           rw[h3]
@@ -390,12 +402,21 @@ lemma algebraic_constructable_iff (M : Set ℂ) (z : ℂ) (h₀: 0 ∈ M) (h₁:
           intro i hi
           sorry
         have almost : ∀ i ≤ n, extendScalars (k_zero_fi i) ≤ NC := by sorry
+
         let G := fun m ↦ restrictScalars ℚ (lift (if hmn : m ≤ n then @map (K_zero M) NC NC _ _ _ _ _ l_σ (restrict (almost m hmn )) else ⊤))
         use G
+        /- this part is supposed to prove that after applying σ, we still get a quadratic tower and thus r is construcible. Very
+        tedious and ran out of time-/
         sorry
       }
 
-      obtain this := @Field.exists_primitive_element (K_zero M) L _ _ _ (Polynomial.IsSplittingField.finiteDimensional L minz) _
+      obtain ⟨α, hα⟩:= @Field.exists_primitive_element (K_zero M) L _ _ _ (Polynomial.IsSplittingField.finiteDimensional L minz) _
+      obtain α_struct := (type_thing α ).mp ((mem_extendScalars (K_zero_in_MField M h₀ h₁)).mp (L_in_M_inf α.2))
+      obtain α_deg := (Classfication_z_in_M_inf_2m h₀ h₁ α) α_struct
+      obtain ⟨n, hn⟩ := α_deg
+      obtain thing := (@Field.primitive_element_iff_minpoly_degree_eq (K_zero M) L _ _ _ (Polynomial.IsSplittingField.finiteDimensional L minz) α).mp hα
+      use n
+      /- ran out of time to figure how to unify minimal polynomal of α as an element of L versus as an element of ℂ-/
       sorry
     · intro h
       obtain ⟨n, hn⟩ := h
@@ -434,28 +455,10 @@ lemma algebraic_constructable_iff (M : Set ℂ) (z : ℂ) (h₀: 0 ∈ M) (h₁:
         intro i hin
         unfold relfinrank
         specialize relind i hin
+        /- this is supposed to prove all the extensions are quadratic- ran out of time
+        and relfinrank is from an pull request of mathlib that changed name in the merge,
+        but Ludwig's code manually included the pull request so it does not update-/
         sorry
       use n, f_L
 
 }
-
-
-
-
-
-
-
-
-
-
-  #check IsGalois.intermediateFieldEquivSubgroup
-  #check IntermediateField.extendScalars.orderIso
-  #check WithTop.coe_le_coe
-  #check IntermediateField.mem_lift
-  #check IsGalois.card_fixingSubgroup_eq_finrank
-  #check MulAction.exists_smul_eq
-  #check Polynomial.Gal.galAction_isPretransitive
-  #check IntermediateField.adjoin_le_iff
-  #check IntermediateField.coe_toSubfield
-  #check Polynomial.ne_zero_of_mem_rootSet
-  #check Polynomial.splits_of_isScalarTower
