@@ -292,7 +292,8 @@ lemma fixedField_bot {k : Type*} {K : Type*} [Field k] [Field K] [Algebra k K] [
 lemma fixedField_top {k : Type*} {K : Type*} [Field k] [Field K] [Algebra k K] [IsGalois k K] :
       IntermediateField.fixedField (⊥ : Subgroup (K ≃ₐ[k] K)) = ⊤ := by sorry
 
-
+set_option synthInstance.maxHeartbeats 0
+set_option maxHeartbeats 0
 lemma algebraic_constructable_iff (M : Set ℂ) (z : ℂ) (h₀: 0 ∈ M) (h₁:1 ∈ M)
   (L :IntermediateField (K_zero M) ℂ) (h₃ : IsAlgebraic (K_zero M) z)
   (h₄ : Polynomial.IsSplittingField (K_zero M) L (minpoly (K_zero M) z)):
@@ -304,21 +305,74 @@ lemma algebraic_constructable_iff (M : Set ℂ) (z : ℂ) (h₀: 0 ∈ M) (h₁:
     constructor
     · intro hz
       obtain ⟨n, F, h1, h2, h3, h4⟩ := (Classfication_z_in_M_inf M z h₀ h₁).mp hz
-      have root_const :(((minpoly (K_zero M) z)).rootSet ℂ)  ⊆ M_inf M := by{
+      have wts: L ≤ extendScalars (K_zero_in_MField M h₀ h₁) := by{
+        rw[← (IntermediateField.lift_top (K_zero M) L)]
+        obtain L_adj := (isSplittingField_iff_intermediateField.mp h₄).2
+        rw[← L_adj, IntermediateField.lift_adjoin, IntermediateField.adjoin_le_iff]
         intro r hr
+        simp
+        have type_thing : ∀ (y: ℂ), y ∈ @Subfield.toIntermediateField ℚ ℂ _ _ _ (MField M h₀ h₁) (fun x ↦ SubfieldClass.ratCast_mem (MField M h₀ h₁) x) ↔  y ∈ M_inf M := by{
+          intro y
+          constructor
+          · exact fun a ↦ a
+          · intro hy
+            exact hy
+        }
+        rw[type_thing r]
+        have k_zero_fn : (K_zero M) ≤ (F n) := by
+          obtain fmono := monotone_nat_of_le_succ h1
+          rw[h3]
+          aesop
+        let NC := @normalClosure (K_zero M) (extendScalars k_zero_fn) ℂ _ _ _ _ _
+        have NC_nc : IsNormalClosure (K_zero M) (extendScalars k_zero_fn) NC := by sorry
+        have NC_normal : Normal (K_zero M) NC := by
+          apply @IsNormalClosure.normal (K_zero M) (extendScalars k_zero_fn) NC _ _ _ _ _
         have minz_fact : Fact ((Polynomial.Splits (algebraMap ↥(K_zero M) ℂ) minz) ):= by
           rw[fact_iff]
           apply Polynomial.splits_of_isScalarTower ℂ (Polynomial.IsSplittingField.splits L minz)
-
         obtain trans_act := Polynomial.Gal.galAction_isPretransitive minz ℂ irr_minz
+        obtain σ := @MulAction.exists_smul_eq minz.Gal _ (Polynomial.Gal.smul minz ℂ) trans_act
+        have z_root : z ∈ (((minpoly (K_zero M) z)).rootSet ℂ) := by
+          rw[Polynomial.mem_rootSet_of_ne]
+          · apply minpoly.aeval
+          · apply minpoly.ne_zero (IsAlgebraic.isIntegral h₃)
+        have r_root : r ∈ minz.rootSet ℂ := by
+          rw[Polynomial.mem_rootSet_of_ne]
+          · simp[minz]
+            sorry
+          · apply minpoly.ne_zero (IsAlgebraic.isIntegral h₃)
+        obtain ⟨σ, hσ⟩ := σ ⟨z, z_root⟩ ⟨r,r_root⟩
+        have fact_split: Fact ( (Polynomial.Splits (algebraMap ↥(K_zero M) ↥NC) minz)) := by sorry
+        obtain gal_surj := @Polynomial.Gal.restrict_surjective (K_zero M) _ minz NC _ _ fact_split NC_normal
+        obtain ⟨l_σ, hl_σ⟩ := gal_surj σ
+        rw[Classfication_z_in_M_inf M r h₀ h₁]
+        use n
+        have k_zero_fi : ∀ (i:ℕ), (K_zero M) ≤ (F i) := by
+          obtain fmono := monotone_nat_of_le_succ h1
+          rw[h3]
+          aesop
+        have fi_NC : ∀ i ≤ n, F i ≤ restrictScalars ℚ NC := by
+          intro i hi
+          sorry
+        have almost : ∀ i ≤ n, extendScalars (k_zero_fi i) ≤ NC := by sorry
+        let G := fun m ↦ restrictScalars ℚ (lift (if hmn : m ≤ n then @map (K_zero M) NC NC _ _ _ _ _ l_σ (restrict (almost m hmn )) else ⊤))
+        use G
         sorry
       }
+      have h_sep: (minpoly (K_zero M) z ).Separable := by
+        apply Irreducible.separable
+        apply minpoly.irreducible
+        apply IsAlgebraic.isIntegral
+        exact h₃
+      have L_galois : IsGalois (K_zero M) L := by
+        apply IsGalois.of_separable_splitting_field h_sep
+      obtain L_sep := (isGalois_iff.mp L_galois).1
+      obtain this := @Field.exists_primitive_element (K_zero M) L _ _ _ (Polynomial.IsSplittingField.finiteDimensional L minz) _
       sorry
     · intro h
       have z_in_L : z ∈ L := by
         apply IsIntegral.mem_intermediateField_of_minpoly_splits
-        · rw[← isAlgebraic_iff_isIntegral]
-          exact h₃
+        · apply IsAlgebraic.isIntegral h₃
         · exact h₄.1
       have h_sep: (minpoly (K_zero M) z ).Separable := by
         apply Irreducible.separable
@@ -389,3 +443,9 @@ lemma algebraic_constructable_iff (M : Set ℂ) (z : ℂ) (h₀: 0 ∈ M) (h₁:
   #check WithTop.coe_le_coe
   #check IntermediateField.mem_lift
   #check IsGalois.card_fixingSubgroup_eq_finrank
+  #check MulAction.exists_smul_eq
+  #check Polynomial.Gal.galAction_isPretransitive
+  #check IntermediateField.adjoin_le_iff
+  #check IntermediateField.coe_toSubfield
+  #check Polynomial.ne_zero_of_mem_rootSet
+  #check Polynomial.splits_of_isScalarTower
