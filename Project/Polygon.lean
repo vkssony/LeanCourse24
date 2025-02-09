@@ -39,7 +39,8 @@ open scoped Pointwise
 
 
 
-
+/-- These two theorems are taken directly from the current version of Mathlib, but are not present in
+this repository's version. Used for proving `ord_pow_two_tower` --/
 
 theorem index_map_of_injective  {G : Type*} {G' : Type*} [Group G] [Group G'] (H : Subgroup G){f : G →* G'} (hf : Function.Injective f) :
     (H.map f).index = H.index * f.range.index := by
@@ -51,101 +52,125 @@ theorem index_map_subtype  {G : Type*} [Group G] {H : Subgroup G}  (K : Subgroup
 
 
 
+/-- this lemma proves a complicated divisibilty condition in the proof of
+`smallest_prime_index` forces a single possibility --/
 
-  lemma dvd_conditions (n m: ℕ) (h1: (Nat.minFac n)∣m) (h2: m∣(Nat.minFac n).factorial)
-      (h3: m∣n) : m= (Nat.minFac n):= by {
-        by_cases hn0 : n =1
-        · simp[hn0] at *
-          tauto
-        · have ppow : IsPrimePow m := by
-            rw[isPrimePow_iff_unique_prime_dvd]
-            use Nat.minFac n
-            simp
-            refine ⟨⟨?_, ?_⟩ , ?_⟩
-            · exact Nat.minFac_prime hn0
-            · exact h1
-            · intro q hq hqm
-              by_contra hneqp
-              by_cases hqp: (Nat.minFac n) < q
-              obtain p_dvd_fac := (@Nat.Prime.dvd_factorial (Nat.minFac n) q hq).mp (Nat.dvd_trans hqm h2)
+lemma dvd_conditions (n m: ℕ) (h1: (Nat.minFac n)∣m) (h2: m∣(Nat.minFac n).factorial)
+    (h3: m∣n) : m= (Nat.minFac n):= by {
+      by_cases hn0 : n =1
+      --trivial n=1 case
+      · simp[hn0] at *
+        tauto
+
+      -- we first prove that m is a power of the smallest prime dividing n (p) by showing no other primes divide it
+      · have ppow : IsPrimePow m := by{
+          rw[isPrimePow_iff_unique_prime_dvd]
+          use Nat.minFac n
+          simp
+          refine ⟨⟨Nat.minFac_prime hn0, h1⟩ , ?_⟩
+          · intro q hq hqm
+            by_contra hneqp
+            by_cases hqp: (Nat.minFac n) < q
+            --primes bigger than p don't divide m because m|p!
+            · obtain p_dvd_fac := (@Nat.Prime.dvd_factorial (Nat.minFac n) q hq).mp (Nat.dvd_trans hqm h2)
               linarith
-              obtain cont := Nat.minFac_le_of_dvd (Nat.Prime.two_le hq) (Nat.dvd_trans hqm h3)
+            --can't have a smaller prime dividing m as that would divide n, contradiciting p being smallest
+            · obtain cont := Nat.minFac_le_of_dvd (Nat.Prime.two_le hq) (Nat.dvd_trans hqm h3)
               obtain thing := eq_of_ge_of_not_gt cont hqp
               tauto
-          obtain ⟨p, k, pprime, k_gt_0, pkm⟩ := ppow
-          subst m
-          rw[← Nat.prime_iff] at pprime
-          have hnminp : p=n.minFac := by
-            refine Nat.le_antisymm ?h₁ ?h₂
-            · have this := (Nat.minFac_le_of_dvd (Nat.Prime.two_le (Nat.minFac_prime hn0)) h1)
-              rw[Nat.Prime.pow_minFac] at this
-              tauto
-              exact pprime
-              exact Nat.not_eq_zero_of_lt k_gt_0
-            · exact Nat.minFac_le_of_dvd (Nat.Prime.two_le pprime) (Nat.dvd_of_pow_dvd k_gt_0 h3)
-          rw[← hnminp] at h2 h1 ⊢
-          have p2_dvd_not : ¬ p ^ 2 ∣ p.factorial := by
-            rw[@padicValNat_dvd_iff_le p (fact_iff.mpr pprime)]
-            · nth_rw 2[← mul_one p]
-              rw[@padicValNat_factorial_mul p 1 (fact_iff.mpr pprime)]
-              simp
-            · exact Nat.factorial_ne_zero p
-          have hk_lt_2: k < 2 := by
-            rw[Nat.Prime.pow_dvd_iff_le_factorization pprime (Nat.factorial_ne_zero p)] at h2 p2_dvd_not
-            linarith
-          have hk1: k=1 := by linarith
-          subst k
-          exact Nat.pow_one p
-      }
+        }
 
+        obtain ⟨p, k, pprime, k_gt_0, pkm⟩ := ppow
+        subst m
+        rw[← Nat.prime_iff] at pprime
 
+        --clumsy way showing the prime m is a power of is n.minFac
+        have hnminp : p=n.minFac := by{
+          refine Nat.le_antisymm ?h₁ ?h₂
+          · have pow_lt := (Nat.minFac_le_of_dvd (Nat.Prime.two_le (Nat.minFac_prime hn0)) h1)
+            rw[Nat.Prime.pow_minFac pprime (Nat.not_eq_zero_of_lt k_gt_0)]  at pow_lt
+            tauto
+          · exact Nat.minFac_le_of_dvd (Nat.Prime.two_le pprime) (Nat.dvd_of_pow_dvd k_gt_0 h3)
+        }
 
+        rw[← hnminp] at h2 h1 ⊢
 
-
-
-
-
-
-
-
-    lemma smallest_prime_index {G : Type*} [Group G] [Finite G] (H: Subgroup G)
-      (h : H.index = Nat.minFac (Nat.card G)) : H.Normal := by {
-        let K := (MulAction.toPermHom G (G⧸H)).ker
-        let p := Nat.minFac (Nat.card G)
-        have K_normalcore: K = H.normalCore := Eq.symm (Subgroup.normalCore_eq_ker H)
-        let f := MulAction.toPermHom G (G⧸H)
-        -- have perm_card: Nat.card (Equiv.Perm (G ⧸ H)) = (H.index).factorial := by sorry
-        have perm_card: Nat.card (Equiv.Perm (G ⧸ H)) = (H.index).factorial := by
-          rw[Subgroup.index_eq_card]
-          obtain fintype_q := Subgroup.fintypeQuotientOfFiniteIndex H
-          rw[← Fintype.card_eq_nat_card, ← Fintype.card_eq_nat_card]
-          apply @Fintype.card_perm _ ?_
-          exact Classical.typeDecidableEq (G ⧸ H)
-        have thing : Nat.card (G⧸K) ∣ Nat.card (Equiv.Perm (G ⧸ H)):=
-          Subgroup.card_dvd_of_injective (QuotientGroup.kerLift f) (QuotientGroup.kerLift_injective f)
-        rw[perm_card, h] at thing
-        have k_in_h : K ≤ H := by
-          rw[K_normalcore]
-          exact Subgroup.normalCore_le H
-        have p_dvd : p ∣ Nat.card (G⧸K) := by
-          trans H.index
-          · unfold p
-            rw[h]
-          · rw[← Subgroup.index_eq_card]
-            simp[Subgroup.index_dvd_of_le, k_in_h]
-        obtain hGKcard: Nat.card (G⧸K) = p := by
-          apply dvd_conditions (Nat.card G) (Nat.card (G⧸K)) p_dvd thing
-          exact Subgroup.card_quotient_dvd_card K
-        obtain releq :=  Subgroup.relindex_mul_index k_in_h
-        rw[Subgroup.index_eq_card K, hGKcard, h, ← one_mul p] at releq
-        unfold p at releq
-        obtain KrelH := Nat.mul_right_cancel (Nat.minFac_pos (Nat.card G)) releq
-        rw[Subgroup.relindex_eq_one] at KrelH
-        obtain HeqK := eq_of_le_of_le k_in_h KrelH
-        rw[K_normalcore] at HeqK
-        rw[← HeqK]
-        exact Subgroup.normalCore_normal H
+        --p^2 doesn't divide p!, which forces p^k =m to have k=1
+        have p2_dvd_not : ¬ p ^ 2 ∣ p.factorial := by {
+          rw[@padicValNat_dvd_iff_le p (fact_iff.mpr pprime)]
+          · nth_rw 2[← mul_one p]
+            rw[@padicValNat_factorial_mul p 1 (fact_iff.mpr pprime)]
+            simp
+          · exact Nat.factorial_ne_zero p
+        }
+        have hk_lt_2: k < 2 := by
+          rw[Nat.Prime.pow_dvd_iff_le_factorization pprime (Nat.factorial_ne_zero p)] at h2 p2_dvd_not
+          linarith
+        have hk1: k=1 := by linarith
+        subst k
+        exact Nat.pow_one p
     }
+
+
+
+
+
+
+
+
+
+
+/-- subgroup H with index of smallest prime dividing G are normal: idea of proof is we prove
+normal core of H is H itself, and hence normal (via group action on cosets) --/
+lemma smallest_prime_index {G : Type*} [Group G] [Finite G] (H: Subgroup G)
+  (h : H.index = Nat.minFac (Nat.card G)) : H.Normal := by {
+    let K := (MulAction.toPermHom G (G⧸H)).ker
+    let p := Nat.minFac (Nat.card G)
+    have K_normalcore: K = H.normalCore := Eq.symm (Subgroup.normalCore_eq_ker H)
+    let f := MulAction.toPermHom G (G⧸H)
+
+    --cardinality of permutation group
+    have perm_card: Nat.card (Equiv.Perm (G ⧸ H)) = (H.index).factorial := by
+      rw[Subgroup.index_eq_card]
+      obtain fintype_q := Subgroup.fintypeQuotientOfFiniteIndex H
+      rw[← Fintype.card_eq_nat_card, ← Fintype.card_eq_nat_card]
+      apply @Fintype.card_perm _ ?_
+      exact Classical.typeDecidableEq (G ⧸ H)
+
+    --first divisibility condition: |G/K| | p! using first isomorphism thoerem
+    have dvd_1: Nat.card (G⧸K) ∣ Nat.card (Equiv.Perm (G ⧸ H)):=
+      Subgroup.card_dvd_of_injective (QuotientGroup.kerLift f) (QuotientGroup.kerLift_injective f)
+    rw[perm_card, h] at dvd_1
+
+    have k_in_h : K ≤ H := by
+      rw[K_normalcore]
+      exact Subgroup.normalCore_le H
+
+    -- as K is a subgroup of H and |G/H|=p, p divides |G/K|
+    have p_dvd : p ∣ Nat.card (G⧸K) := by
+      trans H.index
+      · unfold p
+        rw[h]
+      · rw[← Subgroup.index_eq_card]
+        simp[Subgroup.index_dvd_of_le, k_in_h]
+
+    --divisibility conditions force |G/K|=p
+    obtain hGKcard: Nat.card (G⧸K) = p := by
+      apply dvd_conditions (Nat.card G) (Nat.card (G⧸K)) p_dvd dvd_1
+      exact Subgroup.card_quotient_dvd_card K
+
+    --this forces H=K
+    obtain releq :=  Subgroup.relindex_mul_index k_in_h
+    rw[Subgroup.index_eq_card K, hGKcard, h, ← one_mul p] at releq
+    unfold p at releq
+    obtain KrelH := Nat.mul_right_cancel (Nat.minFac_pos (Nat.card G)) releq
+    rw[Subgroup.relindex_eq_one] at KrelH
+    obtain HeqK := eq_of_le_of_le k_in_h KrelH
+
+    rw[K_normalcore] at HeqK
+    rw[← HeqK]
+    exact Subgroup.normalCore_normal H
+}
 
 lemma ord_pow_two_tower' {G : Type*} [Group G] [Finite G] (n : ℕ) (h: Nat.card G = 2^n) :
   ∃ T : ℕ → Subgroup G, T 0 = ⊤ ∧ T n = ⊥ ∧ (∀ i : ℕ, (T (i+1) ≤  T i)) ∧ ∀ i < n, ((T (i+1)).relindex (T i)=2) ∧ ((T (i+1)).subgroupOf (T (i))).Normal  := by {
@@ -159,12 +184,14 @@ lemma ord_pow_two_tower' {G : Type*} [Group G] [Finite G] (n : ℕ) (h: Nat.card
       symm
       exact Subgroup.eq_bot_of_card_eq ⊤ card_1
     | succ n ih =>
-      have hGcarddvd : 2 ^ n ∣ Nat.card G := by
-        exact Dvd.intro 2 (id (Eq.symm h))
+      have hGcarddvd : 2 ^ n ∣ Nat.card G :=  Dvd.intro 2 (id (Eq.symm h))
+
       obtain ⟨K, hK⟩ := @Sylow.exists_subgroup_card_pow_prime G _ _ 2 n _ hGcarddvd
       obtain ⟨T, hT0, hTnp1, hTi⟩ := ih hK
+
       let S : ℕ → Subgroup G := fun m ↦ if m = 0 then ⊤ else Subgroup.map K.subtype (T (m-1))
       use S
+
       refine ⟨?_, ?_, ?_, ?_⟩
       · tauto
       · unfold S
@@ -179,6 +206,7 @@ lemma ord_pow_two_tower' {G : Type*} [Group G] [Finite G] (n : ℕ) (h: Nat.card
           simp[Nat.sub_one_add_one hi0] at wts
           tauto
       · intro i hi
+        -- this statement eventually turns into [G:K]=2
         have hKind2 : K.index = (2 ^ (n+1))/2 ^ n  := by
           obtain lagrange := Subgroup.index_mul_card K
           rw[h, hK] at lagrange
@@ -188,6 +216,7 @@ lemma ord_pow_two_tower' {G : Type*} [Group G] [Finite G] (n : ℕ) (h: Nat.card
           exact Dvd.intro 2 rfl
         ring_nf at hKind2
         simp at hKind2
+
         by_cases hi0: i = 0
         · subst i
           simp[S]
@@ -207,7 +236,6 @@ lemma ord_pow_two_tower' {G : Type*} [Group G] [Finite G] (n : ℕ) (h: Nat.card
             constructor
             · exact hKind2
             · refine Subgroup.Normal.subgroupOf ?_ ⊤
-              -- exact index_two_normal K hKind2
               apply smallest_prime_index
               simp[hKind2, h, (Nat.Prime.pow_minFac Nat.prime_two)]
         · simp[S, hi0]
@@ -234,27 +262,24 @@ lemma ord_pow_two_tower' {G : Type*} [Group G] [Finite G] (n : ℕ) (h: Nat.card
           refine ⟨?_,?_⟩
           · exact hi_i1_index_2
           · rw[if_neg]
-            -- apply index_two_normal
-            -- apply hi_i1_index_2
-            -- exact hi0
             apply smallest_prime_index
             have two_smallest_prime_dvd: (Nat.card ↥(Subgroup.map K.subtype (T (i - 1)))).minFac = 2 := by{
-              have thingy : Nat.card ↥(Subgroup.map K.subtype (T (i - 1))) = Nat.card ↥(T (i-1)) := by{
+              have subtype_card : Nat.card ↥(Subgroup.map K.subtype (T (i - 1))) = Nat.card ↥(T (i-1)) := by{
                 apply Nat.card_image_of_injective (Subgroup.subtype_injective K)
               }
-              rw[thingy]
+              rw[subtype_card]
               obtain sub_two_gp := IsPGroup.to_subgroup (IsPGroup.of_card hK) (T (i-1))
               have non_triv : Nontrivial ↥(T (i-1)) := by{
                 refine Finite.one_lt_card_iff_nontrivial.mp ?_
-                have this2: ((⊥ : Subgroup ↥K).relindex (T (i-1))) ≠ 0 := by{
+                have relindex_not_infty: ((⊥ : Subgroup ↥K).relindex (T (i-1))) ≠ 0 := by{
                   simp
                   refine Nat.card_ne_zero.mpr ?_
                   constructor
                   · exact One.instNonempty
                   · exact Subgroup.instFiniteSubtypeMem (T (i - 1))
                 }
-                obtain thingy2 := Subgroup.relindex_le_of_le_left (OrderBot.bot_le (T i)) this2
-                simp[hTb] at thingy2
+                obtain T_i_min_1_card_bound := Subgroup.relindex_le_of_le_left (OrderBot.bot_le (T i)) relindex_not_infty
+                simp[hTb] at T_i_min_1_card_bound
                 linarith
               }
               rw[IsPGroup.nontrivial_iff_card sub_two_gp] at non_triv
@@ -273,19 +298,8 @@ lemma ord_pow_two_tower' {G : Type*} [Group G] [Finite G] (n : ℕ) (h: Nat.card
 
 
 
-section degree_two
-
-variable {F: Type*} [Field F] {E : Type*} [Field E] [Algebra F E]
-variable (K : IntermediateField F E) (L : IntermediateField K E)
-
-
-theorem dergree_two_eq_sqr' :  Module.finrank K L = 2 ↔ ∃ x : E, x ^ 2 ∈ K ∧ ¬(x ∈ K) ∧ L = IntermediateField.adjoin K {x} := by {
-  sorry
-}
-
-end degree_two
-
-
+/-- these lemmas are from newer versions of Mathlib, but they required too many other new theorems from Mathlib
+so it was impractical to copy their proofs. Instead, I copied with sorrys --/
 
 lemma fixedField_bot {k : Type*} {K : Type*} [Field k] [Field K] [Algebra k K] [IsGalois k K] :
       IntermediateField.fixedField (⊤ : Subgroup (K ≃ₐ[k] K)) = ⊥ := by sorry
@@ -299,9 +313,30 @@ lemma algebraic_constructable_iff (M : Set ℂ) (z : ℂ) (h₀: 0 ∈ M) (h₁:
   (h₄ : Polynomial.IsSplittingField (K_zero M) L (minpoly (K_zero M) z)):
   z ∈ M_inf M ↔ ∃ (n : ℕ), ((2 : ℕ) ^ n) = Module.finrank (K_zero M) L := by {
     let minz := minpoly (K_zero M) z
-    have irr_minz : Irreducible minz := by
+
+    have irr_minz : Irreducible minz := by{
       apply minpoly.irreducible
       apply IsAlgebraic.isIntegral h₃
+    }
+
+    have h_sep: (minpoly (K_zero M) z ).Separable := by {
+        apply Irreducible.separable
+        apply minpoly.irreducible
+        apply IsAlgebraic.isIntegral
+        exact h₃
+    }
+
+    have L_galois : IsGalois (K_zero M) L := by
+        apply IsGalois.of_separable_splitting_field h_sep
+
+    obtain L_sep := (isGalois_iff.mp L_galois).1
+
+    have z_in_L : z ∈ L := by {
+      apply IsIntegral.mem_intermediateField_of_minpoly_splits
+      · apply IsAlgebraic.isIntegral h₃
+      · exact h₄.1
+    }
+
     constructor
     · intro hz
       obtain ⟨n, F, h1, h2, h3, h4⟩ := (Classfication_z_in_M_inf M z h₀ h₁).mp hz
@@ -359,28 +394,10 @@ lemma algebraic_constructable_iff (M : Set ℂ) (z : ℂ) (h₀: 0 ∈ M) (h₁:
         use G
         sorry
       }
-      have h_sep: (minpoly (K_zero M) z ).Separable := by
-        apply Irreducible.separable
-        apply minpoly.irreducible
-        apply IsAlgebraic.isIntegral
-        exact h₃
-      have L_galois : IsGalois (K_zero M) L := by
-        apply IsGalois.of_separable_splitting_field h_sep
-      obtain L_sep := (isGalois_iff.mp L_galois).1
+
       obtain this := @Field.exists_primitive_element (K_zero M) L _ _ _ (Polynomial.IsSplittingField.finiteDimensional L minz) _
       sorry
     · intro h
-      have z_in_L : z ∈ L := by
-        apply IsIntegral.mem_intermediateField_of_minpoly_splits
-        · apply IsAlgebraic.isIntegral h₃
-        · exact h₄.1
-      have h_sep: (minpoly (K_zero M) z ).Separable := by
-        apply Irreducible.separable
-        apply minpoly.irreducible
-        apply IsAlgebraic.isIntegral
-        exact h₃
-      have L_galois : IsGalois (K_zero M) L := by
-        apply IsGalois.of_separable_splitting_field h_sep
       obtain ⟨n, hn⟩ := h
       have L_findim : FiniteDimensional (K_zero M) L := by
         apply FiniteDimensional.of_finrank_pos
@@ -425,14 +442,7 @@ lemma algebraic_constructable_iff (M : Set ℂ) (z : ℂ) (h₀: 0 ∈ M) (h₁:
 
 
 
-      -- use n, f_L, f_L_tower
-      -- refine ⟨?_,?_,?_⟩
-      -- · simp[f_L,tow_top]
-      --   sorry
-      -- · simp[f_L,tow_bot]
-      --   sorry
-      -- · intro i hin
-      --   sorry
+
 
 
 
