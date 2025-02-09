@@ -9,13 +9,13 @@ This Lean formalization project attempts to prove the Gauss-Wantzel Theorem, whi
 
 The main results of our project are as follows:
 
-Robin.lean:
-- **Fermat primes**: definition of Fermat primes. Mathlib does already have a definition of Fermat numbers, but it is very new and not included in the version of Mathlib used in the repository
-- **phi_pow_two_iff**: for natural numbers n, totient of n is a power of 2 if and only if it factors as in the Gauss-Wantzel theorem above. This is the main lemma about Fermat primes that we needed for our proof of the Gauss-Wantzel theorem
+NumberTheory.lean:
+- **Fermat primes**: definition of Fermat primes. Mathlib does already have a definition of Fermat numbers, but it is very new and not included in the version of Mathlib used in the repository.
+- **phi_pow_two_iff**: for natural numbers n, totient of n is a power of 2 if and only if it factors as in the Gauss-Wantzel theorem above. This is the main lemma about Fermat primes that we needed for our proof of the Gauss-Wantzel theorem.
 -
 
 Polygon.lean:
-- **ord_pow_two_tower** : For a group G with |G| = 2^n, there exists a tower of subgroups 1 = G_n \subset \cdots \subset G_1 \subset G_0 = G such that G_{i+1} is normal in G_i and \[G_i:G_{i+1}\]=2. Although this is a very technically lemma, it was surprisingly hard to prove. It is usually proved quickly using properties of solvable groups, but those are implimented using derived series instead, which makes things difficult
+- **ord_pow_two_tower** : For a group G with |G| = 2^n, there exists a tower of subgroups 1 = G_n \subset \cdots \subset G_1 \subset G_0 = G such that G_{i+1} is normal in G_i and \[G_i:G_{i+1}\]=2. Although this is a very technically lemma, it was surprisingly hard to prove. It is usually proved quickly using properties of solvable groups, but those are implimented using derived series instead, which makes things difficult.
 - **algebraic_constructable_iff** : this result shows that an algebraic number is constructible if and only if the degree of its splitting field (over the rationals) is a power of 2. This is the main result of this file, which corresponds to Theorem 10.1.12 from Cox's book (see below). Result mainly relies on the criterion for constructibility proved by Ludwig in his code about a tower of quadratic extensions.
 
 Polygon_work.lean:
@@ -28,7 +28,12 @@ Other interesting side lemmas that might be useful elsewhere:
 
 # Sorry's
 
-
+NumberTheory.lean:
+- **Nat.pow_of_pow_add_prime** : This is a result that exists in a newer version of Matlib, and so we have included it with a sorry.
+- **product_of_prime_factors** : This is a very standard result which we expected to be in Matlib. However we could not find it and have ran out of time to prove it.
+- **pow_log** : Similarly to the previous lemma, we expected to find it in Matlib, and were not able to complete it in time.
+- **totient_prod** : This is a lemma that exists in Matlib in the case where you are multiplying two coprime numbers (Nat.totient_mul). This lemma generalises that to multiplying over a set of pairwise coprime numbers.
+All four of these lemmas can be seen at the very top of NumberTheory.lean
 
 
 # References

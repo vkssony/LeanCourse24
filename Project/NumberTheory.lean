@@ -8,14 +8,9 @@ import Mathlib.Data.Complex.Exponential
 In this section I list the lemmas that were not completed, and give my reasons for not completeing them
 -/
 
-
---   This theorem exists in matlib, but in a later version than the one we are working with, so I have included it up here
 theorem Nat.pow_of_pow_add_prime {a n : ℕ} (ha : 1 < a) (hn : n ≠ 0) (hP : Nat.Prime (a ^ n + 1)) : ∃ (m : ℕ), n = 2 ^ m := by {
   sorry
 }
-
---   The following two lemmas are basic facts that I expected to already be in matlib, but I did not manage to find them, and I have now
---   ran out to time
 
 lemma product_of_prime_factors (n : ℕ) : n ≠ 0 → n = ∏ p ∈ n.primeFactors, p ^ (n.factorization p) := by {
   sorry
@@ -25,8 +20,6 @@ lemma pow_log (a b : ℕ) : 1 < a → 0 < b → (∃ k, a ^ k = b) → a ^ Nat.l
   sorry
 }
 
---   This lemma exists for multiplying two coprime numbers (Nat.totient_mul). Extending this over a finite set
---   should be not too difficult, but I unfortunatley ran out of time for this aswell.
 lemma totient_prod (A : Finset ℕ) : (∀ x ∈ A, ∀ y ∈ A, x ≠ y → x.Coprime y) → (∏ p ∈ A, p).totient = ∏ p ∈ A, (p).totient := by {
   sorry
 }
