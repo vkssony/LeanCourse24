@@ -14,14 +14,14 @@ theorem Nat.pow_of_pow_add_prime {a n : ℕ} (ha : 1 < a) (hn : n ≠ 0) (hP : N
   sorry
 }
 
---   The following two lemmas are basic facts that I expected to already be in matlab, but I did not manage to find them, and I have now
+--   The following two lemmas are basic facts that I expected to already be in matlib, but I did not manage to find them, and I have now
 --   ran out to time
 
 lemma product_of_prime_factors (n : ℕ) : n ≠ 0 → n = ∏ p ∈ n.primeFactors, p ^ (n.factorization p) := by {
   sorry
 }
 
-lemma pow_log (a b : ℕ) : 1 < a → 0 < b → a ^ Nat.log a b = b := by {
+lemma pow_log (a b : ℕ) : 1 < a → 0 < b → (∃ k, a ^ k = b) → a ^ Nat.log a b = b := by {
   sorry
 }
 
@@ -104,7 +104,17 @@ lemma totient_of_fermat_prime (p : ℕ) : (ProductOfDistinctFermatPrimes p) → 
       }
       tauto
     }
-    exact Eq.symm (pow_log 2 (p_1 - 1) hb hb2)
+
+    have hb3 : ∃ k, 2 ^ k = p_1 - 1 := by {
+      have htemp : FermatPrime p_1 := by exact ((hp.2) p_1 hp_1).1
+      unfold FermatPrime at htemp
+      obtain ⟨k, hk⟩ := htemp.2
+      use 2 ^ k
+      rw [hk]
+      simp
+    }
+
+    exact Eq.symm (pow_log 2 (p_1 - 1) hb hb2 hb3)
   }
   have hpower2 : ∀ p_1 ∈ p.primeFactors, p_1.totient = 2 ^ Nat.log 2 (p_1 - 1) := by {
     intro p_1 hp_1
